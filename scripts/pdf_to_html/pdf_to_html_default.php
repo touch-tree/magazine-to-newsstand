@@ -3,7 +3,7 @@
 class pdf_to_html_default
 {
     static private  $arrayBlocks =              [];
-    static private  $VertialDividerQuantity =   30;
+    static private  $VerticalDividerQuantity =   30;
 
     //#####################################################################
     static public function process($page)
@@ -21,7 +21,8 @@ class pdf_to_html_default
                 digi_pdf_to_html::$arrayPages[$page]['content'],
                 digi_pdf_to_html::$arrayPages[$page]['fontId'],
                 digi_pdf_to_html::$arrayPages[$page]['groupNumber'],
-                digi_pdf_to_html::$arrayPages[$page]['orderNumber']
+                digi_pdf_to_html::$arrayPages[$page]['orderNumber'],
+				digi_pdf_to_html::$arrayPages[$page]['isDeletable']
             );
 
 
@@ -43,7 +44,7 @@ class pdf_to_html_default
 
                 if(!isset($currentTag))                                                         { $isNewGroup = true; }
                 elseif($currentTag !== $obj['tag'][$n] )                                        { $isNewGroup = true; }  
-                elseif( abs($obj['top'][$n] - $currentTop) > self::$VertialDividerQuantity )    { $isNewGroup = true; }   
+                elseif( abs($obj['top'][$n] - $currentTop) > self::$VerticalDividerQuantity )   { $isNewGroup = true; }   
                 
                 if($isNewGroup)
                 {
