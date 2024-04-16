@@ -1,33 +1,45 @@
 <!doctype html>
 <html lang="en">
 <head>
-	<meta charset="utf-8"/>
-	<script>
-		function process(){
-		let src = "process.php";
-		src += "?path="+document.querySelector('#inputPath').value;
-		document.querySelector('#myIframe').src=src;
-		alert('allow little time to proces...');
-		}
-	
-	</script>
-	<style>
-		html,body {font-family:Tahoma;background-color:#EEEEEE;}
-	</style>
+    <meta charset="utf-8"/>
+    <script>
+        function process() {
+            let src = "process.php";
+            src += "?path=" + document.querySelector('#inputPath').value;
+            document.querySelector('#myIframe').src = src;
+            alert('allow little time to proces...');
+        }
+
+    </script>
+
+    <style>
+        html, body {
+            font-family: Tahoma;
+            background-color: #EEEEEE;
+        }
+    </style>
+    <title>Poppler</title>
 </head>
+
 <body style="text-align:center">
-	<br>
-		<table style="width:100%">
-			<tr>
-					<td>Pdf path</td>
-					<td> <input id="inputPath" name="path" value="D:/tempPdfs/italie magazine 2021_2_iPAD.pdf" style="width:90%" />  </td>
-			</tr>
-		</table>
-	
-	<br>
-	Process PDF <a href="javascript:process()">here</a>
-	<br><br>
-	<iframe id='myIframe' style="height:calc(100vh - 200px);overflow:auto;border:1px solid #cccccc;width:90%;display:inline-block;background-color:white;"><iframe>
+<br>
+<table style="width:100%">
+    <tr>
+        <td>Pdf path</td>
+        <td>
+            <input id="inputPath" name="path" value="D:/tempPdfs/italie magazine 2021_2_iPAD.pdf" style="width:90%"/>
+        </td>
+    </tr>
+</table>
+
+<br>
+Process PDF <a href="javascript:process()">here</a>
+<br>
+<br>
+
+<iframe id='myIframe'
+        style="height:calc(100vh - 200px);overflow:auto;border:1px solid #cccccc;width:90%;display:inline-block;background-color:white;">
+</iframe>
 
 </body>
 </html>
