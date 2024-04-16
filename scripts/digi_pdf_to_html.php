@@ -107,6 +107,7 @@ class digi_pdf_to_html
             self::$arrayPages[$pageNumber]['fontId'] =      [];
             self::$arrayPages[$pageNumber]['groupNumber'] = [];
             self::$arrayPages[$pageNumber]['orderNumber'] = [];
+			self::$arrayPages[$pageNumber]['isDeletable'] = [];
 
             $nodes = $dom->tagName('*', $pages[$n] );
             $loop2 =     $nodes->length;
@@ -147,6 +148,7 @@ class digi_pdf_to_html
                 self::$arrayPages[$pageNumber]['fontId'][] =    $fontId;
                 self::$arrayPages[$pageNumber]['groupNumber'][] = 0;
                 self::$arrayPages[$pageNumber]['orderNumber'][] = 0;
+				self::$arrayPages[$pageNumber]['isDeletable'][] = false;
             }
 
 
@@ -204,7 +206,8 @@ class digi_pdf_to_html
                 self::$arrayPages[$page]['content'],
                 self::$arrayPages[$page]['fontId'],
                 self::$arrayPages[$page]['top'],
-                self::$arrayPages[$page]['left']
+                self::$arrayPages[$page]['left'],
+				self::$arrayPages[$page]['isDeletable']
             );
 
          
@@ -215,7 +218,10 @@ class digi_pdf_to_html
 
             for($n=0; $n < $len; $n++)
             {
-                //group management
+                
+				if($obj['isDeletable'][$n]) { continue;}
+				
+				//group management
                 if($currentGroup <> $obj['groupNumber'][$n] && $currentGroup > 0)
                 {                    
                     if(sys::length($content)>0){$arrayHtmlBlocks[] = $content; }
