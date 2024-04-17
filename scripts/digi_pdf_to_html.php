@@ -200,13 +200,21 @@ class digi_pdf_to_html
         return max(self::$arrayPages[$page]['groupNumber']) + 1;
     }
 
+    //###########################################
+    //###########################################
+    //###########################################
+    //HTML BUILDER!!!!!
+    //###########################################
+    //###########################################
+    //###########################################
+
     /**
      * Get the HTML of a page.
      *
      * @param int $page
      * @return string|null
      */
-    public static function getHtmlByPage(int $page): ?string
+    public static function returnPageHtml(int $page): ?string
     {
         if (!isset(self::$arrayPages[$page]) || sys::posInt($page) === 0) {
             return null;
@@ -214,7 +222,7 @@ class digi_pdf_to_html
 
         self::setRulesLogic($page);
 
-        return self::getResolvedHtmlContent($page);
+        return self::returnFinalHtml($page);
     }
 
     /**
@@ -223,7 +231,7 @@ class digi_pdf_to_html
      * @param int $page
      * @return string
      */
-    public static function getResolvedHtmlContent(int $page): string
+    public static function returnFinalHtml(int $page): string
     {
         $blocks = [];
         $content = '';
