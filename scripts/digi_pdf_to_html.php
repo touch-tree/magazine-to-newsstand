@@ -107,6 +107,8 @@ class digi_pdf_to_html
 
         foreach ($dom->tagName('page') as $page) {
             $pageNumber = $dom->getAttribute($page, 'number');
+            $pageWidth  =  $dom->getAttribute($page, 'width');
+            $pageHeight  =  $dom->getAttribute($page, 'height');
 
             self::$arrayPages[$pageNumber] = [
                 'meta' => [
@@ -145,6 +147,10 @@ class digi_pdf_to_html
                     continue;
                 }
 
+                if ($top > $pageHeight || $left > $pageWidth ) {
+                    continue;
+                }
+
                 $content = null;
                 $fontId = null;
 
@@ -175,7 +181,6 @@ class digi_pdf_to_html
         }
 
         // Sort by page number (asc)
-
         ksort(self::$arrayPages);
 
         // Init page property
@@ -192,8 +197,7 @@ class digi_pdf_to_html
             ];
         }
 
-        print_r(self::$arrayPages);
-        exit;
+        print_r(self::$arrayPages);exit;
     }
 
     /**
@@ -288,6 +292,7 @@ class digi_pdf_to_html
     private static function setRulesLogic(int $page): void
     {
         pdf_to_html_default::process($page);
+        pdf_to_html_remove_odd_content::process($page);
         pdf_to_html_filter_image_dimensions::process($page);
         pdf_to_html_text_block::process($page);
 
