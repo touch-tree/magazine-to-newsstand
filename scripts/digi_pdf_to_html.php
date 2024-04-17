@@ -72,6 +72,7 @@ class digi_pdf_to_html
             if(isset($pageNumberFinal)) { $params['l'] = [$pageNumberFinal," "];}
 
             $command =  self::$baseCommand.shell::extractParams($params).' '.escapeshellarg($pdfPath).' '.self::$processFolder."/".self::$filePrefix;
+            
             $out = shell::command($command,self::$processFolder);
 
             //-------
