@@ -1,45 +1,48 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8"/>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
     <script>
         function process() {
             let src = "process.php";
             src += "?path=" + document.querySelector('#inputPath').value;
             document.querySelector('#myIframe').src = src;
-            alert('allow little time to proces...');
+            alert('allow little time to process...');
         }
-
     </script>
 
     <style>
         html, body {
-            font-family: Tahoma;
+            font-family: Tahoma, serif;
             background-color: #EEEEEE;
         }
     </style>
-    <title>Poppler</title>
 </head>
 
 <body style="text-align:center">
 <br>
 <table style="width:100%">
     <tr>
-        <td>Pdf path</td>
         <td>
-            <input id="inputPath" name="path" value="D:/tempPdfs/italie magazine 2021_2_iPAD.pdf" style="width:90%"/>
+            <label for="inputPath">Pdf path</label>
+        </td>
+        <td>
+            <input id="inputPath" name="path"
+                   value="C:/xampp/htdocs/project/poppler/pdf/italie magazine 2021_2_iPAD.pdf" style="width:90%"/>
         </td>
     </tr>
 </table>
-
 <br>
-Process PDF <a href="javascript:process()">here</a>
+<div>Process PDF <a href="javascript:process()">here</a></div>
 <br>
-<br>
-
-<iframe id='myIframe'
-        style="height:calc(100vh - 200px);overflow:auto;border:1px solid #cccccc;width:90%;display:inline-block;background-color:white;">
-</iframe>
+<iframe id='myIframe' title="editor"
+        style="height:calc(100vh - 200px);overflow:auto;border:1px solid #cccccc;width:90%;display:inline-block;background-color:white;"></iframe>
 
 </body>
+
 </html>

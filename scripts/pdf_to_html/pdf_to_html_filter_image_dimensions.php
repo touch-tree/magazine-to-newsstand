@@ -43,7 +43,11 @@ class pdf_to_html_filter_image_dimensions
 
                     if($isDeletable)
                     {
+<<<<<<< HEAD
                         digi_pdf_to_html::$arrayPages[$page]['content'][$n]['isDeletable'] = true;   
+=======
+                        digi_pdf_to_html::$arrayPages[$page]['content'][$n]['isDeletable'] = true;
+>>>>>>> ebf458deec16bb5820cdddb97914f204897ee7be
                     }
             }
     }
