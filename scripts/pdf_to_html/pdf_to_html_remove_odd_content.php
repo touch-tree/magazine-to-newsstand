@@ -3,6 +3,7 @@
 class pdf_to_html_remove_odd_content
 {
 
+
     //#####################################################################
     static public function process($page)
     {	
