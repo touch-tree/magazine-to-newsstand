@@ -292,6 +292,7 @@ class digi_pdf_to_html
     private static function setRulesLogic(int $page): void
     {
         pdf_to_html_default::process($page);
+        pdf_to_html_remove_odd_content::process($page);
         pdf_to_html_filter_image_dimensions::process($page);
         pdf_to_html_text_block::process($page);
 
