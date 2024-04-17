@@ -32,7 +32,7 @@ class pdf_to_html_text_block
         }
 
         ksort($propValues);
-        return $propValues;
+        return $propValues;  //
     }
 
     //#####################################################################
