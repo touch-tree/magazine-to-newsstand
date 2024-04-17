@@ -103,7 +103,8 @@ class digi_pdf_to_html
         // Get the data from the XML
 
         $dom->setFullHtml(files::fileGetContents($path));
-
+        
+    
         foreach ($dom->tagName('page') as $page) {
             $pageNumber = $dom->getAttribute($page, 'number');
 
@@ -167,7 +168,6 @@ class digi_pdf_to_html
                     'width' => $width,
                     'content' => $content,
                     'fontId' => $fontId,
-                    'fonts' => [],
                     'groupNumber' => 0,
                     'isDeletable' => false
                 ];
@@ -179,7 +179,7 @@ class digi_pdf_to_html
         ksort(self::$arrayPages);
 
         // Add font information to the array
-
+        self::$arrayPages =  ['fonts' => []] + self::$arrayPages; 
         foreach ($dom->tagName('fontspec') as $font) {
             self::$arrayPages['fonts'][$dom->getAttribute($font, 'id')] = [
                 'size' => $dom->getAttribute($font, 'size'),
@@ -187,6 +187,8 @@ class digi_pdf_to_html
                 'color' => $dom->getAttribute($font, 'color')
             ];
         }
+
+        print_r(self::$arrayPages);exit;
     }
 
     /**
