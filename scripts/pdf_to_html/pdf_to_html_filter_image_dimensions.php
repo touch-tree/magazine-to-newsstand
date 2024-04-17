@@ -11,19 +11,19 @@ class pdf_to_html_filter_image_dimensions
 
     static public function process($page)
     {	
-            $obj = digi_pdf_to_html::$arrayPages[$page];
-            $len = sizeof( $obj['top']);   
+            $obj = digi_pdf_to_html::$arrayPages[$page]['content'];
+            $len = sizeof( $obj );  
+
             for($n=0; $n < $len; $n++)
             {
-                    if( $obj['tag'][$n] !== "image" ) { continue; }
+                    if( $obj[$n]['tag'] !== "image" ) { continue; }
 
-                    $img = digi_pdf_to_html::$processFolder."/".$obj['content'][$n];
+                    $img = digi_pdf_to_html::$processFolder."/".$obj[$n]['content'];
                     images::detectImageDimensions($img);
 
                     if(!isset(images::$settings['imageWidth']) or sys::posInt(images::$settings['imageWidth']) == 0 )     { continue; }
                     if(!isset(images::$settings['imageHeight']) or sys::posInt(images::$settings['imageHeight']) == 0 )   { continue; }
           
-
                     //----------------------
                     $isDeletable = false;
 
@@ -43,7 +43,7 @@ class pdf_to_html_filter_image_dimensions
 
                     if($isDeletable)
                     {
-                        digi_pdf_to_html::$arrayPages[$page]['isDeletable'][$n] = true;   
+                        digi_pdf_to_html::$arrayPages[$page]['content'][$n]['isDeletable'] = true;
                     }
             }
     }
