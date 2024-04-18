@@ -9,16 +9,15 @@ class pdf_to_html_filter_image_dimensions
     static private  $maxVerticalRatio =   2.5;
     static private  $maxHorizontalRatio = 3.5;
 
-    static public function process($page)
+    static public function process(&$obj)
     {	
-            $obj = digi_pdf_to_html::$arrayPages[$page]['content'];
-            $len = sizeof( $obj );  
+            $len = sizeof( $obj['content'] );  
 
             for($n=0; $n < $len; $n++)
             {
-                    if( $obj[$n]['tag'] !== "image" ) { continue; }
+                    if( $obj['content'][$n]['tag'] !== "image" ) { continue; }
 
-                    $img = digi_pdf_to_html::$processFolder."/".$obj[$n]['content'];
+                    $img = digi_pdf_to_html::$processFolder."/".$obj['content'][$n]['content'];
                     images::detectImageDimensions($img);
 
                     if(!isset(images::$settings['imageWidth']) or sys::posInt(images::$settings['imageWidth']) == 0 )     { continue; }
@@ -43,9 +42,12 @@ class pdf_to_html_filter_image_dimensions
 
                     if($isDeletable)
                     {
-                        digi_pdf_to_html::$arrayPages[$page]['content'][$n]['isDeletable'] = true;   
+                        unset($obj['content'][$n]);
                     }
+ 
             }
+
+            $obj['content'] = array_values ($obj['content']);
     }
     //#####################################################################
 

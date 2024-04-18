@@ -3,7 +3,8 @@ declare(strict_types=1);
 
 class digi_pdf_to_html
 {
-    static public array $arrayPages = [];
+    static public array $arrayPages =   [];
+    static public array $arrayFonts =   [];
     static public ?string $processFolder = null;
     static private bool $isInitiated = false;
     static private ?string $baseCommand = null;
@@ -11,7 +12,7 @@ class digi_pdf_to_html
 
     //###################################################################################
 
-    private static function init(): void
+  private static function init(): void
     {
         if (self::$isInitiated) {
             return;
@@ -149,8 +150,8 @@ class digi_pdf_to_html
                     continue;
                 }
 
-                $content = null;
-                $fontId = null;
+                $content =  null;
+                $fontId =   null;
 
                 if ($tag === 'image') {
                     $src = $dom->getAttribute($node, 'src');
@@ -158,6 +159,7 @@ class digi_pdf_to_html
                         $content = basename($src);
                     }
                 } else {
+                    if( sys::length($node->textContent) == 0) {continue;}
                     $content = $dom->innerHTML($node);
                     if ($dom->hasAttribute($node, 'font')) {
                         $fontId = $dom->getAttribute($node, 'font');
@@ -172,8 +174,7 @@ class digi_pdf_to_html
                     'width' => $width,
                     'content' => $content,
                     'fontId' => $fontId,
-                    'groupNumber' => 0,
-                    'isDeletable' => false
+                    'groupNumber' => 0
                 ];
             }
         }
@@ -181,15 +182,17 @@ class digi_pdf_to_html
         // Sort by page number (asc)
         ksort(self::$arrayPages);
 
-        // Add font information to the array
-        self::$arrayPages =  ['fonts' => []] + self::$arrayPages; 
-        foreach ($dom->tagName('fontspec') as $font) {
-            self::$arrayPages['fonts'][$dom->getAttribute($font, 'id')] = [
+        // Add font information to self::$arrayFonts
+        foreach ($dom->tagName('fontspec') as $font) 
+        {
+            self::$arrayFonts[$dom->getAttribute($font, 'id')] = [
                 'size' => $dom->getAttribute($font, 'size'),
                 'family' => $dom->getAttribute($font, 'family'),
                 'color' => $dom->getAttribute($font, 'color')
             ];
         }
+
+        
     }
 
 
@@ -216,9 +219,9 @@ class digi_pdf_to_html
     //#################################################################################
     // return a set of index values from self::$arrayPages[$page]. Note that the index-numbers themselves are preserved.
 
-    static public function filterSelectedIndexes(int $page, array $arrayIndexes):array 
+    static public function filterSelectedIndexes($obj, array $arrayIndexes):array 
     {
-        $array = digi_pdf_to_html::$arrayPages[$page]['content'];    
+        $array = $obj['content'];    
         
         $values = [];
             
@@ -271,23 +274,37 @@ class digi_pdf_to_html
         $blocks = [];
         $content = '';
 
-        foreach (self::$arrayPages[$page]['content'] as $item) {
-            if ($item['isDeletable']) {
-                continue;
+        //print_r(self::$arrayPages[$page]['content']);exit;
+
+        //sort final array on 'top', then groupnumber
+        usort(self::$arrayPages[$page]['content'], function($a, $b) 
+        {
+            // Compare the 'top' property
+            $topComparison = $a['top'] <=> $b['top'];
+            
+            // If 'top' is the same, compare the 'groupNumber' property
+            if ($topComparison === 0) 
+            {
+                return $a['groupNumber'] <=> $b['groupNumber'];
             }
+            
+            return $topComparison;
+        });
 
-            // Handle text and image tags
+        //----------------------------------------------------
+        
 
-            if ($item['tag'] === 'text') {
-                $content .= $item['content'];
-            } else {
-                if (sys::length($content) > 0) {
-                    $blocks[] = $content;
-
-                    // Reset content for new block
-
-                    $content = '';
-                }
+        //output html
+        $currentGroupId=    0;
+        $html =             "";
+        foreach (self::$arrayPages[$page]['content'] as $item) 
+        {
+            if ($item['tag'] === 'text') 
+            {
+                $html .= "<hr>". $item['content'];
+            } 
+            else 
+            {
 
                 $img = self::$processFolder . '/' . $item['content'];
 
@@ -296,27 +313,22 @@ class digi_pdf_to_html
                 $blob = files::fileGetContents($img);
                 $src = images::base64FromBlob($blob, strtolower(pathinfo($img, PATHINFO_EXTENSION)));
 
-                $blocks[] = '<div><img id="' . basename($img) . '" src="' . $src . '" alt=""/></div>';
+                $html .= '<div><img id="' . basename($img) . '" src="' . $src . '" alt=""/></div>';
             }
         }
 
-        if (sys::length($content) > 0) {
-            $blocks[] = $content;
-        }
-
-        return implode('<hr>', $blocks);
+        return $html;
     }
 
     //##################################
 
     private static function setRulesLogic(int $page): void
     {
-        pdf_to_html_default::process($page);
-        pdf_to_html_remove_odd_content::process($page);
-        pdf_to_html_filter_image_dimensions::process($page);
-        pdf_to_html_text_block::process($page);
-
-        // Add more processors here...
+        $obj = &digi_pdf_to_html::$arrayPages[$page]; //object for each page (note by reference!)
+        pdf_to_html_default::process($obj);
+        pdf_to_html_remove_odd_content::process($obj);
+        pdf_to_html_filter_image_dimensions::process($obj);
+        pdf_to_html_text_same_left_offset::process($obj);
     }
 
     //##################################

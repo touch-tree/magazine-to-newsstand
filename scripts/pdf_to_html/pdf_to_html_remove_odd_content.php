@@ -4,25 +4,24 @@ class pdf_to_html_remove_odd_content
 {
 
     //#####################################################################
-    static public function process($page)
+    static public function process(&$obj)
     {	
-            
-        $obj = digi_pdf_to_html::$arrayPages[$page]['content'];
-        $len = sizeof( $obj );  
-    
+          
+
+        $len = sizeof( $obj['content']);  
         for($n=0; $n < $len; $n++)
         {
-            if($obj[$n]['tag'] === "image")             { continue; }
+            if($obj['content'][$n]['tag'] === "image")             { continue; }
             $delete=false;
-            if(stristr($obj[$n]['content'],".indd"))    {$delete=true;}
+            if(stristr($obj['content'][$n]['content'],".indd"))    {$delete=true;}
 
             if($delete)
             {
-                unset(digi_pdf_to_html::$arrayPages[$page]['content'][$n]);
+                unset($obj['content'][$n]);
             }
         }
 
-        digi_pdf_to_html::$arrayPages[$page]['content'] = array_values (digi_pdf_to_html::$arrayPages[$page]['content']);
+        $obj['content'] = array_values ($obj['content']);
 
     }
     //#####################################################################

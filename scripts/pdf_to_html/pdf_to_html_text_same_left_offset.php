@@ -1,6 +1,6 @@
 <?php
 
-class pdf_to_html_text_block
+class pdf_to_html_text_same_left_offset
 {
     static private  $arrayBlocks =                  [];
     static private  $maxTextYSeparator =            8;     
@@ -54,73 +54,74 @@ class pdf_to_html_text_block
 
 
     //#####################################################################
-
-    static public function process(int $page):void
+    static public function process(&$obj)
     {	
-        $obj = digi_pdf_to_html::$arrayPages[$page]['content'];
-        $len = sizeof( $obj );  
-        $arr = self::returnArrayTextPropertyWithLinkedMultipleIndexes( $obj ,"left");
+      
+        $len = sizeof( $obj['content'] );  
+        $arr = self::returnArrayTextPropertyWithLinkedMultipleIndexes( $obj['content'] ,"left");
         self::$arrayBlocks = [];
-        
+
         foreach ($arr as $leftVal => $indexes) 
         {
-                $array = digi_pdf_to_html::filterSelectedIndexes($page,$indexes);  
+                $array = digi_pdf_to_html::filterSelectedIndexes($obj,$indexes); //Note that the index-numbers themselves are preserved. 
                 $array = digi_pdf_to_html::sortArrayByProperty($array,"top",true);
-    
-                $obj = self::returnBlockObject();
+                
+                $block = self::returnBlockObject();
  
                 foreach ($array as $index => $properties) 
                 {
                             //tresshold based on top-propert
-                            if($obj['topFinal'] > 0 and abs($properties['top'] - $obj['topFinal']) > self::$maxTextYSeparator)
+                            if($block['topFinal'] > 0 and abs($properties['top'] - $block['topFinal']) > self::$maxTextYSeparator)
                             {
-                                self::$arrayBlocks[] = $obj;
-                                $obj = self::returnBlockObject();
+                                self::$arrayBlocks[] = $block;
+                                $block = self::returnBlockObject();
                             }
                         
                             //top start
-                            if($obj['topStart'] == 0 || $properties['top'] < $obj['topStart'])
+                            if($block['topStart'] == 0 || $properties['top'] < $block['topStart'])
                             {
-                                $obj['topStart'] = $properties['top'];
+                                $block['topStart'] = $properties['top'];
                             }
                             
                             //top final
                             $topFinal = $properties['top'] + $properties['height'] ;
-                            if($topFinal > $obj['topFinal'] )     
+                            if($topFinal > $block['topFinal'] )     
                             {
-                                $obj['topFinal']=$topFinal;
+                                $block['topFinal']=$topFinal;
                             }
 
                             //left start
-                            if($obj['leftStart'] == 0 || $properties['left'] < $obj['leftStart'])
+                            if($block['leftStart'] == 0 || $properties['left'] < $block['leftStart'])
                             {
-                                $obj['leftStart'] = $properties['left'];
+                                $block['leftStart'] = $properties['left'];
                             } 
 
                             //left final
                             $leftFinal = $properties['left'] + $properties['width'] ;
-                            if($leftFinal > $obj['leftFinal'] )     
+                            if($leftFinal > $block['leftFinal'] )     
                             {
-                                $obj['leftFinal']=$leftFinal;
+                                $block['leftFinal']=$leftFinal;
                             }  
 
                             //width and height
-                            $obj['width'] =  $obj['leftFinal'] - $obj['leftStart'];
-                            $obj['height'] = $obj['topFinal'] - $obj['topStart'];
+                            $block['width'] =  $block['leftFinal'] - $block['leftStart'];
+                            $block['height'] = $block['topFinal'] - $block['topStart'];
 
                             //content
-                            $obj['content'] .= $properties['content'];
+                            $block['content'] .= $properties['content'];
 
                             //index numbers
-                            $obj['usedIndexes'][] = $index;
+                            $block['usedIndexes'][] = $index;
  
                 }
 
-                self::$arrayBlocks[] = $obj;
+                self::$arrayBlocks[] = $block;
             
         }
-
+     
         //--------------------------
+   
+        
         //merge text-columns if applicable (note only for n>=1)
         $loop = sizeof(self::$arrayBlocks);
         for( $n= ($loop - 1); $n >= 1; $n-- )
@@ -157,23 +158,33 @@ class pdf_to_html_text_block
             
             
         }
-
+        
+        //print_r(self::$arrayBlocks);exit;
         //---------------------
         //assign group numbers
         foreach (self::$arrayBlocks as $key => $properties) 
         {
             $indexes =  $properties['usedIndexes'];
             if(sizeof($indexes)==0) {continue;}
-            $groupId = digi_pdf_to_html::getNewGroupNumber($page);
-            $loop = sizeof( $indexes);
+            $firstIndex = min ($indexes);
+            
+            $obj['content'][$firstIndex]['top']=        $properties['topStart'];
+            $obj['content'][$firstIndex]['left']=       $properties['leftStart'];
+            $obj['content'][$firstIndex]['width']=      $properties['width'];
+            $obj['content'][$firstIndex]['height']=     $properties['height'];
+            $obj['content'][$firstIndex]['content']=    $properties['content'];
+
+            $loop = sizeof($indexes);
             for($n=0;$n<$loop;$n++)
             {
-                $indx = $indexes[$n];
-                digi_pdf_to_html::$arrayPages[$page]['content'][$indx]['groupNumber'] = $groupId;     
-
-            }
-            
+                if($indexes[$n] == $firstIndex ) {continue;}
+                unset($obj['content'][$indexes[$n]]);
+            }            
         }
+
+        $obj['content'] = array_values($obj['content']);
+
+      
     }
     //#####################################################################
 
