@@ -48,6 +48,7 @@ class pdf_to_html_text_same_left_offset
         $obj['width'] =            0;
         $obj['height'] =           0;
         $obj['content'] =          "";
+        $obj['fontId'] =           0;
         $obj['usedIndexes'] =      [];
         return  $obj;
     }
@@ -70,12 +71,32 @@ class pdf_to_html_text_same_left_offset
  
                 foreach ($array as $index => $properties) 
                 {
-                            //tresshold based on top-propert
+                            
+                            //----------------------------
+                            //reset block or not
+                            $resetBlock = false;
+
+
+                            //tresshold based on top-property
                             if($block['topFinal'] > 0 and abs($properties['top'] - $block['topFinal']) > self::$maxTextYSeparator)
+                            {
+                                $resetBlock = true;   
+                            }
+
+                            //font type change
+                            if($block['fontId'] > 0 and $block['fontId'] <> $properties['fontId'] )
+                            {
+                                $resetBlock = true; 
+                            }
+
+                            if($resetBlock)
                             {
                                 self::$arrayBlocks[] = $block;
                                 $block = self::returnBlockObject();
                             }
+
+                            //----------------------------
+                            //collect data
                         
                             //top start
                             if($block['topStart'] == 0 || $properties['top'] < $block['topStart'])
@@ -110,6 +131,9 @@ class pdf_to_html_text_same_left_offset
                             //content
                             $block['content'] .= $properties['content'];
 
+                            //font
+                            $block['fontId'] = $properties['fontId'];
+
                             //index numbers
                             $block['usedIndexes'][] = $index;
  
@@ -119,9 +143,9 @@ class pdf_to_html_text_same_left_offset
             
         }
      
-        //--------------------------
-   
         
+        //--------------------------
+        /*
         //merge text-columns if applicable (note only for n>=1)
         $loop = sizeof(self::$arrayBlocks);
         for( $n= ($loop - 1); $n >= 1; $n-- )
@@ -158,8 +182,10 @@ class pdf_to_html_text_same_left_offset
             
             
         }
+        */
         
-        //print_r(self::$arrayBlocks);exit;
+       
+
         //---------------------
         //assign group numbers
         foreach (self::$arrayBlocks as $key => $properties) 
@@ -181,6 +207,8 @@ class pdf_to_html_text_same_left_offset
                 unset($obj['content'][$indexes[$n]]);
             }            
         }
+
+        print_r($obj['content']);exit;
 
         $obj['content'] = array_values($obj['content']);
 

@@ -12,7 +12,7 @@ class digi_pdf_to_html
 
     //###################################################################################
 
-  private static function init(): void
+	private static function init(): void
     {
         if (self::$isInitiated) {
             return;
