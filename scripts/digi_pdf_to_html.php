@@ -9,11 +9,8 @@ class digi_pdf_to_html
     static private ?string $baseCommand = null;
     static private string $filePrefix = 'content';
 
-    /**
-     * Start the class.
-     *
-     * @return void
-     */
+    //###################################################################################
+
     private static function init(): void
     {
         if (self::$isInitiated) {
@@ -31,6 +28,8 @@ class digi_pdf_to_html
         spl_autoload_register();
     }
 
+    //##################################################################################
+
     /**
      * Process a PDF.
      *
@@ -39,7 +38,8 @@ class digi_pdf_to_html
      * @param int|null $pageNumberFinal
      * @return void
      */
-    public static function process(string $pdfPath, int $pageNumberStart = null, int $pageNumberFinal = null): void
+    
+    public static function process(string $pdfPath, ?int $pageNumberStart = null, ?int $pageNumberFinal = null): void
     {
         self::init();
 
@@ -85,11 +85,9 @@ class digi_pdf_to_html
         self::collectContent();
     }
 
-    /**
-     * Get the content.
-     *
-     * @return void
-     */
+    //##################################################################################
+
+    
     private static function collectContent(): void
     {
         $path = files::standardizePath(self::$processFolder . '/' . self::$filePrefix . '.xml');
@@ -103,8 +101,8 @@ class digi_pdf_to_html
         // Get the data from the XML
 
         $dom->setFullHtml(files::fileGetContents($path));
-
-
+        
+    
         foreach ($dom->tagName('page') as $page) {
             $pageNumber = $dom->getAttribute($page, 'number');
             $pageWidth  =  $dom->getAttribute($page, 'width');
@@ -183,12 +181,8 @@ class digi_pdf_to_html
         // Sort by page number (asc)
         ksort(self::$arrayPages);
 
-        // Init page property
-
-        self::$arrayPages = ['fonts' => []] + self::$arrayPages;
-
         // Add font information to the array
-
+        self::$arrayPages =  ['fonts' => []] + self::$arrayPages; 
         foreach ($dom->tagName('fontspec') as $font) {
             self::$arrayPages['fonts'][$dom->getAttribute($font, 'id')] = [
                 'size' => $dom->getAttribute($font, 'size'),
@@ -196,35 +190,69 @@ class digi_pdf_to_html
                 'color' => $dom->getAttribute($font, 'color')
             ];
         }
-
-        print_r(self::$arrayPages);exit;
     }
 
-    /**
-     * Get the new group number from a page.
-     *
-     * @param int $page
-     * @return string
-     */
-    public static function getNewGroupNumber(int $page): string
+
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //HELPER FUNCTIONS
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+
+    // Get the new group number from a page.
+     
+    public static function getNewGroupNumber(int $page): int
     {
-        return max(self::$arrayPages[$page]['groupNumber']) + 1;
+        $obj = self::$arrayPages[$page]['content'];
+        $groupNumbers = array_column($obj, 'groupNumber');
+        $max= max($groupNumbers);
+        return $max + 1;
     }
 
-    //###########################################
-    //###########################################
-    //###########################################
-    //HTML BUILDER!!!!!
-    //###########################################
-    //###########################################
-    //###########################################
+    //#################################################################################
+    // return a set of index values from self::$arrayPages[$page]. Note that the index-numbers themselves are preserved.
 
-    /**
-     * Get the HTML of a page.
-     *
-     * @param int $page
-     * @return string|null
-     */
+    static public function filterSelectedIndexes(int $page, array $arrayIndexes):array 
+    {
+        $array = digi_pdf_to_html::$arrayPages[$page]['content'];    
+        
+        $values = [];
+            
+        foreach($arrayIndexes as $index) 
+        {
+                if(isset($array[$index])) 
+                {
+                    $values[$index] = $array[$index];
+                }
+        }
+        
+        return $values;
+    }
+
+    //#################################################################################
+    //sorts the base-array by propery (asc or desc) . Note that the index-numbers themselves are preserved.
+    static public function sortArrayByProperty(array $array, string $property, bool $asc = true):array  
+    {
+        uasort($array, function($a, $b) use ($property, $asc) {
+            return $asc ? $a[$property] - $b[$property] : $b[$property] - $a[$property];
+        });
+        return $array;
+    }
+
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //HTML OUTPUT
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+
     public static function returnPageHtml(int $page): ?string
     {
         if (!isset(self::$arrayPages[$page]) || sys::posInt($page) === 0) {
@@ -236,12 +264,8 @@ class digi_pdf_to_html
         return self::returnFinalHtml($page);
     }
 
-    /**
-     * Generate an HTML using the provided page and configuration.
-     *
-     * @param int $page
-     * @return string
-     */
+    //#########################################
+
     public static function returnFinalHtml(int $page): string
     {
         $blocks = [];
@@ -283,12 +307,8 @@ class digi_pdf_to_html
         return implode('<hr>', $blocks);
     }
 
-    /**
-     * Here we implement our post-processing for the data before a HTML is generated from it.
-     *
-     * @param int $page
-     * @return void
-     */
+    //##################################
+
     private static function setRulesLogic(int $page): void
     {
         pdf_to_html_default::process($page);
@@ -296,6 +316,8 @@ class digi_pdf_to_html
         pdf_to_html_filter_image_dimensions::process($page);
         pdf_to_html_text_block::process($page);
 
-        // Add more processors here.
+        // Add more processors here...
     }
+
+    //##################################
 }
