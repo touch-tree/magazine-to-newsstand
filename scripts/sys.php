@@ -128,7 +128,7 @@ class sys
     static public function queryStringToArray(string $str)          { parse_str($str, $arr); return $arr;}
     static public function setHeader($key, $value)                  { header($key.": ".$value); self::$arrayHeaders[$key]=$value;}
     //############################################################################
-    //headers
+    //misc
     static private function returnHeaders():array                   {$arr=array();foreach(getallheaders() as $name => $value){$arr[$name]=$value;}  $arr=array_change_key_case($arr, CASE_LOWER); return $arr; }
     static private function hasHeader($key):bool			        {$key = strtolower($key);if(isset(self::$arrayHeaders[$key])){return true;}else{return false;}}
 	static private function returnHeader($key):string			    {$key = strtolower($key);$out="";if(self::hasHeader($key)){$out = self::$arrayHeaders[$key]; }return $out;}
@@ -136,10 +136,12 @@ class sys
 	static public function compressString($str):string	            {$str=(string) $str; $str = self::clearVar($str); $str=(string) $str; $str=self::strtoupper($str);$str=preg_replace("/[^\p{L}\p{N}]/iu","",$str);return $str;}	
     static public function clearVar($str)		                    {$str=(string) $str; $str = self::trim($str);     $str = strip_tags($str); $str = str_ireplace("|","", $str); $len = strlen($str); if($len>1048576){self::error("Attempt to overflow data during a submission. Page aborted.");} $str = addslashes(self::trim($str));if(is_numeric($str) && !preg_match('/^0\d+/', (string)$str)) {$str = $str + 0;}return $str;} //prepare variable for insertation into database
     static public function stringStartswith(string $haystack, string $needle):bool  {return (string)$needle !== '' && strncmp($haystack, $needle, strlen($needle)) === 0;}
-    static public function extractFirstInt($str):int                { $str = (string)$str; preg_match('/\d+/', $str, $matches); if(isset($matches[0])){ return self::posInt($matches[0]);  } else {return 0;}}
+    static public function stringEndswith(string $haystack, string $needle):bool    {return $needle !== '' && substr($haystack, -strlen($needle)) === (string)$needle;}
+	static public function extractFirstInt($str):int                { $str = (string)$str; preg_match('/\d+/', $str, $matches); if(isset($matches[0])){ return self::posInt($matches[0]);  } else {return 0;}}
     static public function posInt($num):int		                    { $num = (string)$num; $num = ltrim($num,'0'); if(!self::isInt($num)){return 0;} $num = (int)$num; if($num<=0){return 0;}return $num;}
     static public function isInt($num):bool		                    { $num = (string)$num; $num=  self::trim($num); if($num === "0"){return true;} $num = ltrim($num,'0'); if(filter_var($num,FILTER_VALIDATE_INT)){return true;}else{return false;}}
- 
+    static public function returnAlphaNum($str,bool $allowSpace=true):string	    {$str=(string) $str;$str = preg_replace( "/[^\p{L}|\p{N}]+/u", " ", $str );$str = preg_replace( "/[\p{Z}]{2,}/u", " ", $str );if(!$allowSpace){ $str = str_replace(" ", "",$str ); } return $str;}
+    
 
 
     //############################################################################
