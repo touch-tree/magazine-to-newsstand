@@ -17,7 +17,7 @@ class pdf_to_html_filter_image_dimensions
     static public function process(&$obj):void
     {	
             $len = sizeof( $obj['content'] );  
-
+            
             for($n=0; $n < $len; $n++)
             {
                     if( $obj['content'][$n]['tag'] !== "image" ) { continue; }

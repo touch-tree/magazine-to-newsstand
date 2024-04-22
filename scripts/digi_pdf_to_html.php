@@ -14,6 +14,7 @@ class digi_pdf_to_html
 
     //###################################################################################
 
+
 	private static function init(): void
     {
         if (self::$isInitiated) {
@@ -256,6 +257,7 @@ class digi_pdf_to_html
         
         $obj = &digi_pdf_to_html::$arrayPages[$page]; 
         self::sortByTopThenLeftAsc($obj);
+
         pdf_to_html_remove_last_hyphen::process($obj);
         pdf_to_html_remove_odd_content::process($obj);
         pdf_to_html_filter_image_dimensions::process($obj);
@@ -265,6 +267,12 @@ class digi_pdf_to_html
         pdf_to_html_blocks_group_left_offset::process($obj);
         pdf_to_html_remove_overlapping_images::process($obj);
         pdf_to_html_text_remove_footer::process($obj);
+        pdf_to_html_text_remove_header::process($obj);
+        pdf_to_html_link_image_to_group::process($obj);
+     
+        pdf_to_html_text_orphan_content::process($obj);
+        
+        
         
     }
 
@@ -333,7 +341,8 @@ class digi_pdf_to_html
                         $arrayHandledGroup[]=$item['groupNumber'];
                         $dom->setAttribute($divGroup,"id",$idName);
                         $dom->setCssProperty($divGroup,"border","2px solid orange"); 
-                        $dom->setCssProperty($divGroup,"margin","5px"); 
+                        $dom->setCssProperty($divGroup,"margin-top","15px"); 
+                        $dom->setCssProperty($divGroup,"margin-bottom","15px"); 
                         $dom->appendLast($body,$divGroup);
                     }
                     else
