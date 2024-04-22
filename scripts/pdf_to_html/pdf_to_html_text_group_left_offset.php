@@ -32,7 +32,7 @@ class pdf_to_html_text_group_left_offset
         digi_pdf_to_html::sortByTopThenLeftAsc($obj);
         
         //-----------------------------------------------
-        //group all identical 'left' property values (for text-nodes) together and gather the relatied index values from tghe base-data object
+        //group all identical 'left' property values (for text-nodes) together and gather the relatied index values from the base-data object
         $arrayLeftCollection = [];
 
         foreach ($obj['content'] as $index => $item) 

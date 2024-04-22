@@ -5,6 +5,7 @@ class digi_pdf_to_html
 {
     static public array $arrayPages =       [];
     static public array $arrayFonts =       [];
+ 
 
     static public ?string $processFolder =  null;
     static private bool $isInitiated =      false;
@@ -35,6 +36,9 @@ class digi_pdf_to_html
     public static function process(string $pdfPath, ?int $pageNumberStart = null, ?int $pageNumberFinal = null): void
     {
         self::init();
+
+        self::$arrayPages =       [];
+        self::$arrayFonts =       [];
 
         if (!is_file($pdfPath)) {
             sys::error('pdf-path is invalid: ' . $pdfPath);
@@ -249,6 +253,7 @@ class digi_pdf_to_html
 
     private static function setRulesLogic(int $page): void
     {
+        
         $obj = &digi_pdf_to_html::$arrayPages[$page]; 
         self::sortByTopThenLeftAsc($obj);
         pdf_to_html_remove_last_hyphen::process($obj);
@@ -257,6 +262,10 @@ class digi_pdf_to_html
         pdf_to_html_text_group_left_offset::process($obj);
         pdf_to_html_text_group_columns::process($obj);
         pdf_to_html_text_center_aligned_block::process($obj);
+        pdf_to_html_blocks_group_left_offset::process($obj);
+        pdf_to_html_remove_overlapping_images::process($obj);
+        pdf_to_html_text_remove_footer::process($obj);
+        
     }
 
     //#########################################
@@ -266,6 +275,10 @@ class digi_pdf_to_html
         if (!isset(self::$arrayPages[$page]) || sys::posInt($page) === 0) { return null; }
         self::setRulesLogic($page);
         return self::returnFinalHtml($page);
+
+
+        
+        
     }
 
     //#########################################
@@ -278,10 +291,11 @@ class digi_pdf_to_html
         //apply default sorting first
         $obj = &digi_pdf_to_html::$arrayPages[$page]; //object for each page (note by reference!)
         self::sortByTopThenLeftAsc($obj);
-        $objFinal = [];
-
+    
         //----------------------------------------------------
         //gather groupNumbers together
+        $objFinal = [];
+
         $arrayHandledGroup=[];
         foreach ($obj['content'] as $index => $properties) 
         {
@@ -296,45 +310,85 @@ class digi_pdf_to_html
                 }
             }
         }
-       
-        //---------------------------------------------------- 
+
+        //----------------------------------------------------
+        //Build DOM
+        $dom =  new html_parser();
+        $dom->setFullHtml("<html><body></body></html>");
+        $body = $dom->tagName("body")[0];
+
+
         //output html
-        $arrayBlocks =      [];
-        $html =             ""; 
+        $arrayHandledGroup=[];
         foreach ($objFinal as $item) 
         {
+            $divGroup =     $dom->createElem("div");
+            $divBlock =     $dom->createElem("div");
+            
+            if($item['groupNumber'] > 0)
+            {
+                    $idName = "div_group_".$item['groupNumber'];
+                    if(!in_array($item['groupNumber'],$arrayHandledGroup) )
+                    {
+                        $arrayHandledGroup[]=$item['groupNumber'];
+                        $dom->setAttribute($divGroup,"id",$idName);
+                        $dom->setCssProperty($divGroup,"border","2px solid orange"); 
+                        $dom->setCssProperty($divGroup,"margin","5px"); 
+                        $dom->appendLast($body,$divGroup);
+                    }
+                    else
+                    {
+                        $divGroup = $dom->id($idName);
+                    }
+
+                    $dom->appendLast($divGroup,$divBlock);
+            }
+            else
+            {
+                $dom->appendLast($body,$divBlock);      
+            }
+
+            
             if ($item['tag'] === 'text') 
             {
-                $style="";
+              
                 if(isset($item['fontId']) && isset(self::$arrayFonts[$item['fontId']]))
                 {
                     $arr = self::$arrayFonts[$item['fontId']];
-
-                    $style =  "color:".$arr['color'].";";
-                    $style .=  "font-size:".$arr['size']."px;";
+                    $dom->setCssProperty($divBlock,"color",$arr['color']);
+                    $dom->setCssProperty($divBlock,"font-size",$arr['size']."px");
                 }
-                
-                $arrayBlocks[] = "<div style='padding:10px;border:1px dashed #777777;margin:10px;".$style."'>". $item['content']."</div>";
+
+                $dom->setCssProperty($divBlock,"padding","10px");
+                $dom->setCssProperty($divBlock,"border","1px dashed #777777");
+                $dom->setCssProperty($divBlock,"margin","10px");
+                $dom->setInnerHTML($divBlock,$item['content']);	
             } 
             else 
             {
-                if(sys::length($html) > 0)
-                {
-                    $arrayBlocks[]=$html;
-                    $html = "";           
-                }
                 
-                $img = self::$processFolder . '/' . $item['content'];
-                $blob = files::fileGetContents($img);
-                $src = images::base64FromBlob($blob, strtolower(pathinfo($img, PATHINFO_EXTENSION)));
-                $arrayBlocks[] = ' <div> <img id="' . basename($img) . '" src="' . $src . '" alt=""/> </div> ';
-          
+                
+                $imgPath = self::$processFolder . '/' . $item['content'];
+                $blob = files::fileGetContents($imgPath);
+                $src = images::base64FromBlob($blob, strtolower(pathinfo($imgPath, PATHINFO_EXTENSION)));
+
+                $img =     $dom->createElem("img");
+                $dom->setAttribute($img,"src",$src);
+                $dom->setAttribute($img,"data-basename",basename($imgPath));
+                $dom->appendLast($divBlock,$img);
+                $dom->setCssProperty($divBlock,"text-align","center");
+
             } 
         }
 
-        return implode(" ",$arrayBlocks);
+        return $dom->innerHTML($body);
+
     }
 
 
     //##################################
+   
+
+
+
 }

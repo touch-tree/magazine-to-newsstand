@@ -12,6 +12,7 @@ class pdf_to_html_filter_image_dimensions
 
     static private  $maxVerticalRatio =   2.5;
     static private  $maxHorizontalRatio = 3.5;
+    static private  $maxImageWidth=       800;
 
     static public function process(&$obj):void
     {	
@@ -52,7 +53,16 @@ class pdf_to_html_filter_image_dimensions
                     {
                         unset($obj['content'][$n]);
                     }
- 
+                    else
+                    {
+                            //----------------------
+                            //resize large images
+                            if($w > self::$maxImageWidth)
+                            {
+                                images::resizeImage($img,self::$maxImageWidth);
+                            }
+
+                    }
             }
 
             $obj['content'] = array_values ($obj['content']); //re-index all data

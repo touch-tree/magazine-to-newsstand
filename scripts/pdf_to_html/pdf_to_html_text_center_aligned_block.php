@@ -125,7 +125,7 @@ class pdf_to_html_text_center_aligned_block
 
         //--------------------------
         //group text based column layout together (will obtain a groupNumber assignment)
-
+       
         $loop = sizeof($arrayBlocks);
         for( $n= ($loop - 1); $n >= 1; $n-- )
         {
@@ -138,7 +138,7 @@ class pdf_to_html_text_center_aligned_block
                 $arrayBlocks[$indexPrev]['groupNumber'] = digi_pdf_to_html::getNewGroupNumber($obj);
             }
             $arrayBlocks[$n]['groupNumber'] = $arrayBlocks[$indexPrev]['groupNumber'];
-
+        
         }
 
 
@@ -164,18 +164,18 @@ class pdf_to_html_text_center_aligned_block
         }
 
         $obj['content'] = array_values($obj['content']);
-        //-----------------------------------------
+   
+        //------------------------------------------------
+    
        
        
-       // print_r($arrayBlocks);
 
-        //echo "tothier";exit;
 
 
        
 
         
-        //print_r($obj); exit;
+     
 
     }
     //#####################################################################
