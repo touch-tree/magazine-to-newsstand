@@ -246,6 +246,17 @@ class digi_pdf_to_html
         $objBase =      &$obj['content'][$baseIndex];
         $objAppend =    &$obj['content'][$appendIndex];
 
+        if($objBase['tag'] === "text" && $objAppend['tag'] === "text"  )
+        {
+            $txt1 = sys::strtoupper($objBase['content']);
+            $txt2 = $objBase['content'];
+            if($txt1 === $txt2)
+            {
+                $objAppend['content'] = sys::strtoupper($objAppend['content']);      
+            }
+        }
+
+
         $objBase['content'] .=  $objAppend['content']; 
         $objBase['left']     =  min([$objBase['left'],$objAppend['left']]);
         $objBase['top']      =  min([$objBase['top'],$objAppend['top']]);
@@ -281,6 +292,7 @@ class digi_pdf_to_html
     //execute logical components. Rules:
     // 1) All done by object reference func(&$obj) { ... }
     // 2) Always apply one single method process($obj)
+	// 3) try to keep classes in order
 
     private static function setRulesLogic(int $page): void
     {
@@ -288,6 +300,7 @@ class digi_pdf_to_html
         $obj = &digi_pdf_to_html::$arrayPages[$page]; 
        
         self::sortByTopThenLeftAsc($obj);
+		
         pdf_to_html_remove_last_hyphen::process($obj);
         pdf_to_html_remove_odd_content::process($obj);
         pdf_to_html_filter_image_dimensions::process($obj);
@@ -299,6 +312,7 @@ class digi_pdf_to_html
         pdf_to_html_text_leftoffset_groupnumbers::process($obj);
         pdf_to_html_text_intersect_groupnumbers::process($obj);
         pdf_to_html_text_centered_groupnumbers::process($obj);
+		pdf_to_html_text_orphan_merging::process($obj);
     }
 
     //#########################################
