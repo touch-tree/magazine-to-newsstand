@@ -14,7 +14,6 @@ class digi_pdf_to_html
 
     //###################################################################################
 
-
 	private static function init(): void
     {
         if (self::$isInitiated) {
@@ -237,7 +236,38 @@ class digi_pdf_to_html
 
         return $array;
     }
-    
+
+    //----------------------------------------
+    //MERGER
+    //merges two blocks togehter (in $arrayPages[$page]['content'])
+    static public function mergeBlocks(array &$obj, int $baseIndex, int $appendIndex, bool $resetIndex = true ):void  
+    {
+                
+        $objBase =      &$obj['content'][$baseIndex];
+        $objAppend =    &$obj['content'][$appendIndex];
+
+        $objBase['content'] .=  $objAppend['content']; 
+        $objBase['left']     =  min([$objBase['left'],$objAppend['left']]);
+        $objBase['top']      =  min([$objBase['top'],$objAppend['top']]);
+
+        //calc new width
+        $finalLeft1 =  $objBase['left'] +  $objBase['width'];
+        $finalLeft2 =  $objAppend['left'] +  $objAppend['width'];
+        $objBase['width'] = max([$finalLeft1,$finalLeft2]) - $objBase['left'];
+
+        //calc new height
+        $finalTop1 = $objBase['top'] + $objBase['height'];
+        $finalTop2 = $objAppend['top'] + $objAppend['height'];
+        $objBase['height'] = max([$finalTop1,$finalTop2]) - $objBase['top'];
+
+        unset($obj['content'][$appendIndex]);
+
+        if($resetIndex)
+        {
+            $obj['content'] = array_values($obj['content']); //re-index data
+        }
+        
+    }
 
     //#################################################################################
     //#################################################################################
@@ -256,24 +286,14 @@ class digi_pdf_to_html
     {
         
         $obj = &digi_pdf_to_html::$arrayPages[$page]; 
+       
         self::sortByTopThenLeftAsc($obj);
-
         pdf_to_html_remove_last_hyphen::process($obj);
         pdf_to_html_remove_odd_content::process($obj);
         pdf_to_html_filter_image_dimensions::process($obj);
-        pdf_to_html_text_group_left_offset::process($obj);
-        pdf_to_html_text_group_columns::process($obj);
-        pdf_to_html_text_center_aligned_block::process($obj);
-        pdf_to_html_blocks_group_left_offset::process($obj);
-        pdf_to_html_remove_overlapping_images::process($obj);
-        pdf_to_html_text_remove_footer::process($obj);
-        pdf_to_html_text_remove_header::process($obj);
-        pdf_to_html_link_image_to_group::process($obj);
-     
-        pdf_to_html_text_orphan_content::process($obj);
-        
-        
-        
+        pdf_to_html_text_leftoffset_merging::process($obj);
+        pdf_to_html_text_centered_merging::process($obj);
+ 
     }
 
     //#########################################
@@ -283,10 +303,6 @@ class digi_pdf_to_html
         if (!isset(self::$arrayPages[$page]) || sys::posInt($page) === 0) { return null; }
         self::setRulesLogic($page);
         return self::returnFinalHtml($page);
-
-
-        
-        
     }
 
     //#########################################
