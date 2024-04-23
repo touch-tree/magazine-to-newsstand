@@ -298,6 +298,7 @@ class digi_pdf_to_html
         pdf_to_html_header_removal::process($obj);
         pdf_to_html_text_leftoffset_groupnumbers::process($obj);
         pdf_to_html_text_intersect_groupnumbers::process($obj);
+        pdf_to_html_text_centered_groupnumbers::process($obj);
     }
 
     //#########################################
