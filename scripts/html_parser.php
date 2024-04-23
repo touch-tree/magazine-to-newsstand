@@ -79,12 +79,326 @@ class html_parser
 	//##############################################################################
 	//##############################################################################
 	//##############################################################################
+	public function extractHexColor($str)							{$str=" ".$str;while(strpos($str,"#",0)){$pos = strpos($str,"#",0);$color=	strtolower(substr($str, $pos,7));if(preg_match('/^#[a-f0-9]{6}$/i',$color)){return $color;}}return '';}
+	public function returnPxValues($str)							{$pattern = "/\b\d{1,4}(?:\.\d{1,4})?px/";preg_match_all($pattern, $str, $matches) ? $matches[0] : 'fail';if($matches[0]){$matches[0] = array_map('intval',$matches[0]); return $matches[0];}else{return array();}}
 	private function setPropVal(&$prop,$val)						{if( ($prop === 0 or strlen($prop)==0) and strlen($val)>0){$prop=trim($val);}}
 	private function removeComments($str)							{if (preg_match_all('#<\!--(.*)-->#Uis', $str, $rcomments)){foreach ($rcomments[0] as $c) {$key = "yesKey_".md5($c); $keyStr = 	 "<!-- ".$key." -->";if(!in_array($keyStr,$this->arrayComments['key']) and !stristr($c,"yesKey_")){array_push($this->arrayComments['key'],$keyStr);array_push($this->arrayComments['str'],$c);}}$str = str_replace($this->arrayComments['str'],$this->arrayComments['key'],$str);}return $str;} /* example <!--StartFragment--><!--EndFragment--> */
 	private function restoreComments($html)							{$html = str_replace($this->arrayComments['key'],$this->arrayComments['str'],$html);return $html;}
 	private function removeOddChars($str)							{$str = str_ireplace(sys::chr(194),"",$str);$str = str_ireplace(sys::chr(160)," ",$str);$str = str_ireplace(array("%5B","%5D"),array("[","]"),$str);return $str;}
+	public function removeCData($string)							{return preg_replace_callback('~<!\[CDATA\[(.*)\]\]>~',function (array $matches) {return htmlspecialchars($matches[1], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');},$string);}
+	public function deleteComments($html)							{return preg_replace('/<!--(.|\s)*?-->/', '', $html);}
 	//##############################################################################
 	
+	public function returnCellProperties($elem)
+	{
+		$array=array();
+		
+		$array['border-color']="";
+		$array['background-color']="";
+		
+		$array['border']=array();
+		$array['border']['t']=0;	
+		$array['border']['r']=0;
+		$array['border']['b']=0;
+		$array['border']['l']=0;
+		
+		$array['padding']=array();
+		$array['padding']['t']=0;	
+		$array['padding']['r']=0;
+		$array['padding']['b']=0;
+		$array['padding']['l']=0;
+		//------			
+	 	if($this->hasInitialproperty($elem,'border-width'))
+		{			
+				$css = 		$this->returnInitialproperty($elem,'border-width');
+				$vals = 	$this->returnPxValues($css); 
+				if(sizeof($vals)==3) //top | vertical | bottom 
+				{
+					$this->setPropVal($array['border']['t'],$vals[0]);
+					$this->setPropVal($array['border']['r'],$vals[1]);
+					$this->setPropVal($array['border']['b'],$vals[2]);	
+					$this->setPropVal($array['border']['l'],$vals[1]);	
+				}
+				if(sizeof($vals)==4)//top | right | bottom | left 
+				{
+					$this->setPropVal($array['border']['t'],$vals[0]);	
+					$this->setPropVal($array['border']['r'],$vals[1]);
+					$this->setPropVal($array['border']['b'],$vals[2]);
+					$this->setPropVal($array['border']['l'],$vals[3]);
+				}
+				if(sizeof($vals)==2) //horizontal | vertical | 
+				{
+					$this->setPropVal($array['border']['t'],$vals[0]);
+					$this->setPropVal($array['border']['r'],$vals[1]);
+					$this->setPropVal($array['border']['b'],$vals[0]);	
+					$this->setPropVal($array['border']['l'],$vals[1]);	
+				}
+				if(sizeof($vals)==1)
+				{
+					$this->setPropVal($array['border']['t'],$vals[0]);
+					$this->setPropVal($array['border']['r'],$vals[0]);
+					$this->setPropVal($array['border']['b'],$vals[0]);	
+					$this->setPropVal($array['border']['l'],$vals[0]);	
+				}	
+		}	
+		//----
+		if($this->hasInitialproperty($elem,'border'))
+		{			
+				$css = 		$this->returnInitialproperty($elem,'border');
+				$this->setPropVal($array['border-color'],$this->extractHexColor($css));
+				$vals = 	$this->returnPxValues($css); 
+				if(sizeof($vals)==3) //top | vertical | bottom 
+				{
+					$this->setPropVal($array['border']['t'],$vals[0]);
+					$this->setPropVal($array['border']['r'],$vals[1]);
+					$this->setPropVal($array['border']['b'],$vals[2]);	
+					$this->setPropVal($array['border']['l'],$vals[1]);	
+				}
+				if(sizeof($vals)==4)//top | right | bottom | left 
+				{
+					$this->setPropVal($array['border']['t'],$vals[0]);	
+					$this->setPropVal($array['border']['r'],$vals[1]);
+					$this->setPropVal($array['border']['b'],$vals[2]);
+					$this->setPropVal($array['border']['l'],$vals[3]);
+				}
+				if(sizeof($vals)==2) //horizontal | vertical | 
+				{
+					$this->setPropVal($array['border']['t'],$vals[0]);
+					$this->setPropVal($array['border']['r'],$vals[1]);
+					$this->setPropVal($array['border']['b'],$vals[0]);	
+					$this->setPropVal($array['border']['l'],$vals[1]);	
+				}
+				if(sizeof($vals)==1)
+				{
+					$this->setPropVal($array['border']['t'],$vals[0]);
+					$this->setPropVal($array['border']['r'],$vals[0]);
+					$this->setPropVal($array['border']['b'],$vals[0]);	
+					$this->setPropVal($array['border']['l'],$vals[0]);	
+				}	
+		}	
+		//----
+		if($this->hasInitialproperty($elem,'border-top'))
+		{
+			$css = 					$this->returnInitialproperty($elem,'border-top');
+			$vals = 				$this->returnPxValues($css); 
+			$this->setPropVal($array['border-color'],$this->extractHexColor($css));
+			$this->setPropVal($array['border']['t'],$vals[0]);
+		}
+		if($this->hasInitialproperty($elem,'border-right'))
+		{
+			$css = 					$this->returnInitialproperty($elem,'border-right');
+			$vals = 				$this->returnPxValues($css); 
+			$this->setPropVal($array['border-color'],$this->extractHexColor($css));
+			$this->setPropVal($array['border']['r'],$vals[0]);
+		}
+		if($this->hasInitialproperty($elem,'border-bottom'))
+		{
+			$css = 					$this->returnInitialproperty($elem,'border-bottom');
+			$vals = 				$this->returnPxValues($css); 
+			$this->setPropVal($array['border-color'],$this->extractHexColor($css));
+			$this->setPropVal($array['border']['b'],$vals[0]);
+		}
+		if($this->hasInitialproperty($elem,'border-left'))
+		{
+			$css = 					$this->returnInitialproperty($elem,'border-left');
+			$vals = 				$this->returnPxValues($css); 
+			$this->setPropVal($array['border-color'],$this->extractHexColor($css));
+			$this->setPropVal($array['border']['l'],$vals[0]);
+		}
+		//---		
+		if($this->hasInitialproperty($elem,'border-color'))
+		{
+			$css = 					$this->returnInitialproperty($elem,'border-color'); 
+			$this->setPropVal($array['border-color'],$this->extractHexColor($css));
+		}	
+		//---
+		//[2021-03-04]
+		if($this->hasInitialproperty($elem,'border-right-width'))
+		{
+			$css = 					$this->returnInitialproperty($elem,'border-right-width');
+			$vals = 				$this->returnPxValues($css); 
+			$this->setPropVal($array['border']['r'],$vals[0]);
+		}
+		if($this->hasInitialproperty($elem,'border-bottom-width'))
+		{
+			$css = 					$this->returnInitialproperty($elem,'border-bottom-width');
+			$vals = 				$this->returnPxValues($css); 
+			$this->setPropVal($array['border']['b'],$vals[0]);
+		}
+		if($this->hasInitialproperty($elem,'border-left-width'))
+		{
+			$css = 					$this->returnInitialproperty($elem,'border-left-width');
+			$vals = 				$this->returnPxValues($css); 
+			$this->setPropVal($array['border']['l'],$vals[0]);
+		}
+		if($this->hasInitialproperty($elem,'border-top-width'))
+		{
+			$css = 					$this->returnInitialproperty($elem,'border-top-width');
+			$vals = 				$this->returnPxValues($css); 
+			$this->setPropVal($array['border']['t'],$vals[0]);
+		}
+		//------------------------------------------------------------------------
+		if($this->hasInitialproperty($elem,'padding'))
+		{
+			$css = 					$this->returnInitialproperty($elem,'padding');
+			$vals = 				$this->returnPxValues($css);  
+			if(sizeof($vals)==3) //top | vertical | bottom 
+			{
+				$this->setPropVal($array['padding']['t'],$vals[0]);
+				$this->setPropVal($array['padding']['r'],$vals[1]);
+				$this->setPropVal($array['padding']['b'],$vals[2]);	
+				$this->setPropVal($array['padding']['l'],$vals[1]);	
+			}
+			if(sizeof($vals)==4)//top | right | bottom | left 
+			{
+				$this->setPropVal($array['padding']['t'],$vals[0]);	
+				$this->setPropVal($array['padding']['r'],$vals[1]);
+				$this->setPropVal($array['padding']['b'],$vals[2]);
+				$this->setPropVal($array['padding']['l'],$vals[3]);
+			}
+			if(sizeof($vals)==2) //horizontal | vertical | 
+			{
+				$this->setPropVal($array['padding']['t'],$vals[0]);
+				$this->setPropVal($array['padding']['r'],$vals[1]);
+				$this->setPropVal($array['padding']['b'],$vals[0]);	
+				$this->setPropVal($array['padding']['l'],$vals[1]);	
+			}
+			if(sizeof($vals)==1)
+			{
+				$this->setPropVal($array['padding']['t'],$vals[0]);
+				$this->setPropVal($array['padding']['r'],$vals[0]);
+				$this->setPropVal($array['padding']['b'],$vals[0]);	
+				$this->setPropVal($array['padding']['l'],$vals[0]);	
+			}		 
+		}		
+		//------
+		if($this->hasInitialproperty($elem,'padding-top'))
+		{
+			$css = 					$this->returnInitialproperty($elem,'padding-top');
+			$vals = 				$this->returnPxValues($css); 
+			$this->setPropVal($array['padding']['t'],$vals[0]);
+		}		
+		if($this->hasInitialproperty($elem,'padding-right'))
+		{
+			$css = 					$this->returnInitialproperty($elem,'padding-right');
+			$vals = 				$this->returnPxValues($css); 
+			$this->setPropVal($array['padding']['r'],$vals[0]);
+		}		
+		if($this->hasInitialproperty($elem,'padding-bottom'))
+		{
+			$css = 					$this->returnInitialproperty($elem,'padding-bottom');
+			$vals = 				$this->returnPxValues($css); 
+			$this->setPropVal($array['padding']['b'],$vals[0]);
+		}
+		if($this->hasInitialproperty($elem,'padding-left'))
+		{
+			$css = 					$this->returnInitialproperty($elem,'padding-left');
+			$vals = 				$this->returnPxValues($css); 
+			$this->setPropVal($array['padding']['l'],$vals[0]);
+		}
+		//------
+		if($this->hasInitialproperty($elem,'background-color'))
+		{
+			$css = 	$this->returnInitialproperty($elem,'background-color'); 
+			$this->setPropVal($array['background-color'],$this->extractHexColor($css));
+		}
+		//-----	
+		//[2021-03-04] border coloring (can only be one color per cell)
+		if($this->hasInitialproperty($elem,'border-left-color'))
+		{
+			$css = $this->returnInitialproperty($elem,'border-left-color');
+			$this->setPropVal($array['border-color'],$this->extractHexColor($css));
+		}
+		if($this->hasInitialproperty($elem,'border-top-color'))
+		{
+			$css = $this->returnInitialproperty($elem,'border-top-color');
+			$this->setPropVal($array['border-color'],$this->extractHexColor($css));
+		}
+		if($this->hasInitialproperty($elem,'border-right-color'))
+		{
+			$css = $this->returnInitialproperty($elem,'border-right-color');
+			$this->setPropVal($array['border-color'],$this->extractHexColor($css));
+		}
+		if($this->hasInitialproperty($elem,'border-bottom-color'))
+		{
+			$css = $this->returnInitialproperty($elem,'border-bottom-color');
+			$this->setPropVal($array['border-color'],$this->extractHexColor($css));
+		}
+
+		if(strlen($array['border-color'])==0)
+		{
+			$array['border']['t']=0;	
+			$array['border']['r']=0;
+			$array['border']['b']=0;
+			$array['border']['l']=0;			
+		}
+		//------
+		return $array;	
+	}	
+	
+	//##############################################################################
+	
+	public function returnTableProperties($elem)
+	{
+		$array=array();
+		$array['border-color']="";
+		$array['background-color']="";	
+		$array['border-width']=0;	
+	 	if($this->hasInitialproperty($elem,'border-width'))
+		{
+				$css = 		$this->returnInitialproperty($elem,'border-width');
+				$vals = 	$this->returnPxValues($css); 
+				$this->setPropVal($array['border-width'],$vals[0]);	 
+		}
+
+		if($this->hasInitialproperty($elem,'border-color'))
+		{
+				$css = 		$this->returnInitialproperty($elem,'border-color');
+				$vals = 	$this->returnPxValues($css); 
+				$this->setPropVal($array['border-color'],$this->extractHexColor($css));  
+		}
+
+		if($this->hasInitialproperty($elem,'background-color'))
+		{
+				$css = 	$this->returnInitialproperty($elem,'background-color'); 
+				$this->setPropVal($array['background-color'],$this->extractHexColor($css));
+		}
+
+		if($this->hasInitialproperty($elem,'border'))
+		{
+				$css = 	$this->returnInitialproperty($elem,'border');
+				$vals = $this->returnPxValues($css); 
+				$this->setPropVal($array['border-width'],$vals[0]);	
+				$this->setPropVal($array['border-color'],$this->extractHexColor($css)); 
+				
+		}		
+		
+		return $array;
+		
+	}	
+	//##############################################################################
+	private function returnTags($tagName,$html)				{preg_match_all('/<'.$tagName.'*[^>]+>/i',$html, $results);return $results[0];}
+	private function returnHtmlToXml($html)					
+	{
+		$arraySelfClosingTags=array("input","img");
+		$loop=sizeof($arraySelfClosingTags);
+
+		for($n=0;$n<$loop;$n++)
+		{
+			$arr=$this->returnTags($arraySelfClosingTags[$n],$html);
+			$loop2=sizeof($arr);
+			for($i=0;$i<$loop2;$i++)
+			{
+				if(stristr($arr[$i],"/>")){continue;}
+				$strNew=str_replace(">"," />",$arr[$i]);
+				$html = str_replace($arr[$i],$strNew,$html);
+			}
+		}
+		$html=str_ireplace("<br>","<br />",$html);
+		$html=str_ireplace("<hr>","<hr />",$html);
+		return $html;
+	}
+	//##############################################################################
 
 }
 
