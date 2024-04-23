@@ -1,13 +1,9 @@
 <?php
 
-class pdf_to_html_text_remove_header
+class pdf_to_html_header_removal
 {
 
-    static private $minTopDistance =  80; //min spacing from top  
-
-    //#####################################################################
-
-
+    static private  $maxTopMargin =  60; //max spacing top and first content
 
     //#####################################################################
     static public function process(&$obj):void
@@ -15,16 +11,14 @@ class pdf_to_html_text_remove_header
         //-----------------------------------------------
         //force sorting
         digi_pdf_to_html::sortByTopThenLeftAsc($obj);
-    
+        
+      
         foreach ($obj['content'] as $index => $properties) 
         {
-            if($properties['groupNumber'] > 0 )                 { continue; }  //ignore grouped items
-            if($properties['top'] > self::$minTopDistance )     { continue; }  
-
+            if($properties['top'] > self::$maxTopMargin )     { continue; }  
             unset($obj['content'][$index]);
         } 
        
-        
         $obj['content'] = array_values($obj['content']);//re-index data object
 
     }
