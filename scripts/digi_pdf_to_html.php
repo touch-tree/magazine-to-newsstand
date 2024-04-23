@@ -3,18 +3,19 @@ declare(strict_types=1);
 
 class digi_pdf_to_html
 {
-    static public array $arrayPages = [];
-    static public ?string $processFolder = null;
-    static private bool $isInitiated = false;
-    static private ?string $baseCommand = null;
-    static private string $filePrefix = 'content';
+    static public array $arrayPages =       [];
+    static public array $arrayFonts =       [];
+ 
 
-    /**
-     * Start the class.
-     *
-     * @return void
-     */
-    private static function init(): void
+    static public ?string $processFolder =  null;
+    static private bool $isInitiated =      false;
+    static private ?string $baseCommand =   null;
+    static private string $filePrefix =     'content';
+
+    //###################################################################################
+
+
+	private static function init(): void
     {
         if (self::$isInitiated) {
             return;
@@ -31,36 +32,32 @@ class digi_pdf_to_html
         spl_autoload_register();
     }
 
-    /**
-     * Process a PDF.
-     *
-     * @param string $pdfPath
-     * @param int|null $pageNumberStart
-     * @param int|null $pageNumberFinal
-     * @return void
-     */
-    public static function process(string $pdfPath, int $pageNumberStart = null, int $pageNumberFinal = null): void
+    //##################################################################################
+    
+    public static function process(string $pdfPath, ?int $pageNumberStart = null, ?int $pageNumberFinal = null): void
     {
         self::init();
+
+        self::$arrayPages =       [];
+        self::$arrayFonts =       [];
 
         if (!is_file($pdfPath)) {
             sys::error('pdf-path is invalid: ' . $pdfPath);
         }
 
+        //-----------------------------
         // Setup temporary folder
-
         self::$processFolder = files::standardizePath(settings::server()['tempFolder'] . '/' . sys::databaseDir() . '/' . md5($pdfPath) . '/');
 
-        // Remove process folder contents
-
+        //--------------------------------
+        // Manage temporary process folder to place content
         if (is_dir(self::$processFolder)) {
             files::removeFolder(self::$processFolder);
         }
-
         files::createDir(self::$processFolder);
 
-        // The HTML content (note must be XML, as this version contains image x-y-location data)
-
+        //--------------------------------
+        // The HTML content and must be XML in the command, as this version also contains image x-y-location data.
         $params = array(
             'xml' => [null, null],
             'fontfullname' => [null, null],
@@ -68,47 +65,34 @@ class digi_pdf_to_html
             'c' => [null, null]
         );
 
-        if (isset($pageNumberStart)) {
-            $params['f'] = [$pageNumberStart, ' '];
-        }
-
-        if (isset($pageNumberFinal)) {
-            $params['l'] = [$pageNumberFinal, ' '];
-        }
+        if (isset($pageNumberStart)) { $params['f'] = [$pageNumberStart, ' ']; }
+        if (isset($pageNumberFinal)) { $params['l'] = [$pageNumberFinal, ' ']; }
 
         $command = self::$baseCommand . shell::extractParams($params) . ' ' . escapeshellarg($pdfPath) . ' ' . self::$processFolder . '/' . self::$filePrefix;
-
-        // Create an XML file with the provided arguments and PDF pages
-
         shell::command($command, self::$processFolder);
-
         self::collectContent();
     }
 
-    /**
-     * Get the content.
-     *
-     * @return void
-     */
+    //##################################################################################
+
+    
     private static function collectContent(): void
     {
         $path = files::standardizePath(self::$processFolder . '/' . self::$filePrefix . '.xml');
 
-        if (!is_file($path)) {
-            sys::error('content - path is invalid: ' . $path);
-        }
+        if (!is_file($path)) {  sys::error('content - path is invalid: ' . $path); }
 
+        //---------------
+        //parse the generated xml
         $dom = new html_parser();
-
-        // Get the data from the XML
-
         $dom->setFullHtml(files::fileGetContents($path));
-
-
-        foreach ($dom->tagName('page') as $page) {
-            $pageNumber = $dom->getAttribute($page, 'number');
-            $pageWidth  =  $dom->getAttribute($page, 'width');
-            $pageHeight  =  $dom->getAttribute($page, 'height');
+        
+    
+        foreach ($dom->tagName('page') as $page) 
+        {
+            $pageNumber =       $dom->getAttribute($page, 'number');
+            $pageWidth  =       $dom->getAttribute($page, 'width');
+            $pageHeight  =      $dom->getAttribute($page, 'height');
 
             self::$arrayPages[$pageNumber] = [
                 'meta' => [
@@ -118,52 +102,43 @@ class digi_pdf_to_html
                 'content' => []
             ];
 
-            foreach ($dom->tagName('*', $page) as $node) {
+            foreach ($dom->tagName('*', $page) as $node) 
+            {
                 $tag = $dom->returnNodeName($node);
 
-                if (!in_array($tag, ['text', 'image'])) {
-                    continue;
-                }
+                //---------------------
+                //basic validation
+                if (!in_array($tag, ['text', 'image'])) { continue; } 
 
                 // Validate attributes
+                $attributes = ['top', 'left', 'height', 'width'];
+                foreach ($attributes as $attribute)  { if (!$dom->hasAttribute($node, $attribute)) {continue 2;}  }
 
-                if (
-                    !$dom->hasAttribute($node, 'top') ||
-                    !$dom->hasAttribute($node, 'left') ||
-                    !$dom->hasAttribute($node, 'height') ||
-                    !$dom->hasAttribute($node, 'width')
-                ) {
-                    continue;
-                }
+                $top =      $dom->getAttribute($node, 'top');
+                $left =     $dom->getAttribute($node, 'left');
+                $height =   $dom->getAttribute($node, 'height');
+                $width =    $dom->getAttribute($node, 'width');
 
-                $top = $dom->getAttribute($node, 'top');
-                $left = $dom->getAttribute($node, 'left');
-                $height = $dom->getAttribute($node, 'height');
-                $width = $dom->getAttribute($node, 'width');
+                //---------------------
+                //elements out of visual range
+                if ($top < 0 || $left < 0 || $height <= 0 || $width <= 0)   { continue; }
+                if ($top > $pageHeight || $left > $pageWidth )              { continue; }
 
-                // Check for non-dimensional elements and ignore them
+                //---------------------
+                //parse actual content
+                $content =  null;
+                $fontId =   null;
 
-                if ($top < 0 || $left < 0 || $height <= 0 || $width <= 0) {
-                    continue;
-                }
-
-                if ($top > $pageHeight || $left > $pageWidth ) {
-                    continue;
-                }
-
-                $content = null;
-                $fontId = null;
-
-                if ($tag === 'image') {
+                if ($tag === 'image') 
+                {
                     $src = $dom->getAttribute($node, 'src');
-                    if (is_file($src)) {
-                        $content = basename($src);
-                    }
-                } else {
-                    $content = $dom->innerHTML($node);
-                    if ($dom->hasAttribute($node, 'font')) {
-                        $fontId = $dom->getAttribute($node, 'font');
-                    }
+                    if (is_file($src)) { $content = basename($src);}
+                } 
+                else 
+                {
+                    if( sys::length($node->textContent) == 0) {continue;}
+                    $content = $dom->innerHTML($node); //note: do not/never trim this for whitespace!
+                    if ($dom->hasAttribute($node, 'font')) { $fontId = $dom->getAttribute($node, 'font');}
                 }
 
                 self::$arrayPages[$pageNumber]['content'][] = [
@@ -174,128 +149,255 @@ class digi_pdf_to_html
                     'width' => $width,
                     'content' => $content,
                     'fontId' => $fontId,
-                    'groupNumber' => 0,
-                    'isDeletable' => false
+                    'groupNumber' => 0
                 ];
             }
         }
 
-        // Sort by page number (asc)
+        //----------------------------
+        // Sort key (which is the page number) asc
         ksort(self::$arrayPages);
 
-        // Init page property
-
-        self::$arrayPages = ['fonts' => []] + self::$arrayPages;
-
-        // Add font information to the array
-
-        foreach ($dom->tagName('fontspec') as $font) {
-            self::$arrayPages['fonts'][$dom->getAttribute($font, 'id')] = [
+        //---------------------------
+        // Collect font information self::$arrayFonts
+        foreach ($dom->tagName('fontspec') as $font) 
+        {
+            self::$arrayFonts[$dom->getAttribute($font, 'id')] = [
                 'size' => $dom->getAttribute($font, 'size'),
                 'family' => $dom->getAttribute($font, 'family'),
                 'color' => $dom->getAttribute($font, 'color')
             ];
         }
 
-        print_r(self::$arrayPages);exit;
+        
     }
 
-    /**
-     * Get the new group number from a page.
-     *
-     * @param int $page
-     * @return string
-     */
-    public static function getNewGroupNumber(int $page): string
+
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //HELPER FUNCTIONS
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+
+    //------------------------------------------
+    //SORTING
+    //sorts base-array self::$arrayPages[$page] by top-position (asc), and then left-position(asc).
+    //content is handled (by default) from top-left to bottom-right
+    static public function sortByTopThenLeftAsc(&$obj):void 
     {
-        return max(self::$arrayPages[$page]['groupNumber']) + 1;
+        usort($obj['content'], function ($item1, $item2)  
+        {
+            if ($item1['top'] == $item2['top']) { return $item1['left'] <=> $item2['left']; }
+            return $item1['top'] <=> $item2['top'];
+        });
     }
 
-    //###########################################
-    //###########################################
-    //###########################################
-    //HTML BUILDER!!!!!
-    //###########################################
-    //###########################################
-    //###########################################
-
-    /**
-     * Get the HTML of a page.
-     *
-     * @param int $page
-     * @return string|null
-     */
-    public static function returnPageHtml(int $page): ?string
+    //-----------------------------------------
+    //GROUPING CONTENT
+    //obtain a new group-number within 1 page (self::$arrayPages[$page]). 
+    //Note that the group-number does not care about any top- or left positioning. It is simply for grouping purposes.     
+    public static function getNewGroupNumber(&$obj): int  
     {
-        if (!isset(self::$arrayPages[$page]) || sys::posInt($page) === 0) {
-            return null;
-        }
-
-        self::setRulesLogic($page);
-
-        return self::returnFinalHtml($page);
+        $groupNumbers = array_column($obj['content'], 'groupNumber');
+        return max($groupNumbers) + 1;
     }
 
-    /**
-     * Generate an HTML using the provided page and configuration.
-     *
-     * @param int $page
-     * @return string
-     */
-    public static function returnFinalHtml(int $page): string
+    //----------------------------------------
+    //INDEX FILTERING
+    //obtain index values, with it current properties from base-array self::$arrayPages[$page]
+    //Note that the index-numbers themselves are preserved.
+    static public function filterSelectedIndexes($obj, array $arrayIndexes):array 
     {
-        $blocks = [];
-        $content = '';
-
-        foreach (self::$arrayPages[$page]['content'] as $item) {
-            if ($item['isDeletable']) {
-                continue;
-            }
-
-            // Handle text and image tags
-
-            if ($item['tag'] === 'text') {
-                $content .= $item['content'];
-            } else {
-                if (sys::length($content) > 0) {
-                    $blocks[] = $content;
-
-                    // Reset content for new block
-
-                    $content = '';
-                }
-
-                $img = self::$processFolder . '/' . $item['content'];
-
-                // Prepare image element
-
-                $blob = files::fileGetContents($img);
-                $src = images::base64FromBlob($blob, strtolower(pathinfo($img, PATHINFO_EXTENSION)));
-
-                $blocks[] = '<div><img id="' . basename($img) . '" src="' . $src . '" alt=""/></div>';
-            }
+        $array =    $obj['content'];    
+        $values =   [];
+            
+        foreach($arrayIndexes as $index) 
+        {
+                if(isset($array[$index])) { $values[$index] = $array[$index]; }
         }
-
-        if (sys::length($content) > 0) {
-            $blocks[] = $content;
-        }
-
-        return implode('<hr>', $blocks);
+        
+        return $values;
     }
 
-    /**
-     * Here we implement our post-processing for the data before a HTML is generated from it.
-     *
-     * @param int $page
-     * @return void
-     */
+    
+    //----------------------------------------
+    //SORTING
+    //sorts the base-array self::$arrayPages[$page]['content'] on a property value (asc or desc) . 
+    //Note that the index-numbers themselves are preserved.
+    static public function sortArrayByProperty(array $array, string $property, bool $asc = true):array  
+    {
+        uasort($array, function($a, $b) use ($property, $asc) 
+        {
+            return $asc ? $a[$property] - $b[$property] : $b[$property] - $a[$property];
+        });
+
+        return $array;
+    }
+    
+
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //HTML OUTPUT
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //execute logical components. Rules:
+    // 1) All done by object reference func(&$obj) { ... }
+    // 2) Always apply one single method process($obj)
+
     private static function setRulesLogic(int $page): void
     {
-        pdf_to_html_default::process($page);
-        pdf_to_html_remove_odd_content::process($page);
-        pdf_to_html_filter_image_dimensions::process($page);
-        pdf_to_html_text_block::process($page);
+        
+        $obj = &digi_pdf_to_html::$arrayPages[$page]; 
+        self::sortByTopThenLeftAsc($obj);
 
-        // Add more processors here.
+        pdf_to_html_remove_last_hyphen::process($obj);
+        pdf_to_html_remove_odd_content::process($obj);
+        pdf_to_html_filter_image_dimensions::process($obj);
+        pdf_to_html_text_group_left_offset::process($obj);
+        pdf_to_html_text_group_columns::process($obj);
+        pdf_to_html_text_center_aligned_block::process($obj);
+        pdf_to_html_blocks_group_left_offset::process($obj);
+        pdf_to_html_remove_overlapping_images::process($obj);
+        pdf_to_html_text_remove_footer::process($obj);
+        pdf_to_html_text_remove_header::process($obj);
+        pdf_to_html_link_image_to_group::process($obj);
+     
+        pdf_to_html_text_orphan_content::process($obj);
+        
+        
+        
     }
+
+    //#########################################
+
+    public static function returnPageHtml(int $page): ?string
+    {
+        if (!isset(self::$arrayPages[$page]) || sys::posInt($page) === 0) { return null; }
+        self::setRulesLogic($page);
+        return self::returnFinalHtml($page);
+
+
+        
+        
+    }
+
+    //#########################################
+    //the final output of a html-page
+
+    public static function returnFinalHtml(int $page): string
+    {
+       
+        //----------------------------------------------------
+        //apply default sorting first
+        $obj = &digi_pdf_to_html::$arrayPages[$page]; //object for each page (note by reference!)
+        self::sortByTopThenLeftAsc($obj);
+    
+        //----------------------------------------------------
+        //gather groupNumbers together
+        $objFinal = [];
+
+        $arrayHandledGroup=[];
+        foreach ($obj['content'] as $index => $properties) 
+        {
+            if($properties['groupNumber'] == 0) { $objFinal[] = $properties; }
+            elseif(!in_array($properties['groupNumber'], $arrayHandledGroup))
+            {
+                $arrayHandledGroup[] = $properties['groupNumber'];
+                foreach ($obj['content'] as $index2 => $properties2) 
+                {
+                        if($properties['groupNumber'] <> $properties2['groupNumber'] ) {continue;} 
+                        $objFinal[] = $properties2;    
+                }
+            }
+        }
+
+        //----------------------------------------------------
+        //Build DOM
+        $dom =  new html_parser();
+        $dom->setFullHtml("<html><body></body></html>");
+        $body = $dom->tagName("body")[0];
+
+
+        //output html
+        $arrayHandledGroup=[];
+        foreach ($objFinal as $item) 
+        {
+            $divGroup =     $dom->createElem("div");
+            $divBlock =     $dom->createElem("div");
+            
+            if($item['groupNumber'] > 0)
+            {
+                    $idName = "div_group_".$item['groupNumber'];
+                    if(!in_array($item['groupNumber'],$arrayHandledGroup) )
+                    {
+                        $arrayHandledGroup[]=$item['groupNumber'];
+                        $dom->setAttribute($divGroup,"id",$idName);
+                        $dom->setCssProperty($divGroup,"border","2px solid orange"); 
+                        $dom->setCssProperty($divGroup,"margin-top","15px"); 
+                        $dom->setCssProperty($divGroup,"margin-bottom","15px"); 
+                        $dom->appendLast($body,$divGroup);
+                    }
+                    else
+                    {
+                        $divGroup = $dom->id($idName);
+                    }
+
+                    $dom->appendLast($divGroup,$divBlock);
+            }
+            else
+            {
+                $dom->appendLast($body,$divBlock);      
+            }
+
+            
+            if ($item['tag'] === 'text') 
+            {
+              
+                if(isset($item['fontId']) && isset(self::$arrayFonts[$item['fontId']]))
+                {
+                    $arr = self::$arrayFonts[$item['fontId']];
+                    $dom->setCssProperty($divBlock,"color",$arr['color']);
+                    $dom->setCssProperty($divBlock,"font-size",$arr['size']."px");
+                }
+
+                $dom->setCssProperty($divBlock,"padding","10px");
+                $dom->setCssProperty($divBlock,"border","1px dashed #777777");
+                $dom->setCssProperty($divBlock,"margin","10px");
+                $dom->setInnerHTML($divBlock,$item['content']);	
+            } 
+            else 
+            {
+                
+                
+                $imgPath = self::$processFolder . '/' . $item['content'];
+                $blob = files::fileGetContents($imgPath);
+                $src = images::base64FromBlob($blob, strtolower(pathinfo($imgPath, PATHINFO_EXTENSION)));
+
+                $img =     $dom->createElem("img");
+                $dom->setAttribute($img,"src",$src);
+                $dom->setAttribute($img,"data-basename",basename($imgPath));
+                $dom->appendLast($divBlock,$img);
+                $dom->setCssProperty($divBlock,"text-align","center");
+
+            } 
+        }
+
+        return $dom->innerHTML($body);
+
+    }
+
+
+    //##################################
+   
+
+
+
 }
