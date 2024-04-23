@@ -44,8 +44,6 @@ class pdf_to_html_text_leftoffset_merging
 
         //-------------------------------------------------
         //loop found collection
-        $arrayBlocks = [];
-
         foreach ($arrayLeftCollection as $leftVal => $indexes) 
         {
                 $len =  sizeof($indexes);

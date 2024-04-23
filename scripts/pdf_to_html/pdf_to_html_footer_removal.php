@@ -16,7 +16,6 @@ class pdf_to_html_footer_removal
         //force sorting
         digi_pdf_to_html::sortByTopThenLeftAsc($obj);
         
-      
         $pageHeight = $obj['meta']['pageHeight'];
         $maxTop = $pageHeight - self::$maxBottomMargin;
 
@@ -29,9 +28,6 @@ class pdf_to_html_footer_removal
         
         $obj['content'] = array_values($obj['content']); //re-index data object
 
-
-
- 
     }
     //#####################################################################
 
