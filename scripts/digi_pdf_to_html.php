@@ -292,7 +292,7 @@ class digi_pdf_to_html
     //execute logical components. Rules:
     // 1) All done by object reference func(&$obj) { ... }
     // 2) Always apply one single method process($obj)
-	// 3) try to keep classes in order
+    // 3) try to keep classes in order
 
     private static function setRulesLogic(int $page): void
     {
@@ -300,7 +300,9 @@ class digi_pdf_to_html
         $obj = &digi_pdf_to_html::$arrayPages[$page]; 
        
         self::sortByTopThenLeftAsc($obj);
-		
+
+        //-----------------
+        //text related
         pdf_to_html_remove_last_hyphen::process($obj);
         pdf_to_html_remove_odd_content::process($obj);
         pdf_to_html_filter_image_dimensions::process($obj);
@@ -312,7 +314,11 @@ class digi_pdf_to_html
         pdf_to_html_text_leftoffset_groupnumbers::process($obj);
         pdf_to_html_text_intersect_groupnumbers::process($obj);
         pdf_to_html_text_centered_groupnumbers::process($obj);
-		pdf_to_html_text_orphan_merging::process($obj);
+        pdf_to_html_text_orphan_merging::process($obj);
+      
+        //----------------
+        //image related from here on .... 
+        
     }
 
     //#########################################
