@@ -305,7 +305,6 @@ class digi_pdf_to_html
         //text related
         pdf_to_html_remove_last_hyphen::process($obj);
         pdf_to_html_remove_odd_content::process($obj);
-        pdf_to_html_filter_image_dimensions::process($obj);
         pdf_to_html_text_leftoffset_merging::process($obj);
         pdf_to_html_text_centered_merging::process($obj);
         pdf_to_html_text_columns_merging::process($obj);
@@ -317,8 +316,10 @@ class digi_pdf_to_html
         pdf_to_html_text_orphan_merging::process($obj);
       
         //----------------
-        //image related from here on .... 
-        
+        //image related from here on
+        pdf_to_html_filter_image_dimensions::process($obj);
+        pdf_to_html_image_remove_faint::process($obj);
+        pdf_to_html_image_remove_blurred::process($obj);
     }
 
     //#########################################

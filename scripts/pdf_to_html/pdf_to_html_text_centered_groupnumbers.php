@@ -4,7 +4,7 @@ class pdf_to_html_text_centered_groupnumbers
 {
 
     static private  $maxTextYSeparator =            8; //max spacing between 2 sections 
-    static private  $maxcenterMarginThreshold=      4;
+    static private  $maxcenterMarginThreshold=      6;
     //#####################################################################
     static private function findIndex(array $array, int $centerValue):?int
     {

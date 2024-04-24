@@ -5,7 +5,7 @@ class pdf_to_html_text_centered_merging
 
     static private  $maxTextYSeparator =            8; //max spacing between 2 lines 
     static private  $maxHeightThreshold=            60; 
-    static private  $maxcenterMarginThreshold=      4;
+    static private  $maxcenterMarginThreshold=      6;
     //#####################################################################
     static private function findIndex(array $array, int $centerValue):?int
     {

@@ -49,6 +49,9 @@ class pdf_to_html_filter_image_dimensions
                         if($ratio > self:: $maxVerticalRatio )   { $isDeletable = true; }      
                     }
 
+                    //crap images
+                    if($h < 25) { $isDeletable = true; }
+
                     if($isDeletable)
                     {
                         unset($obj['content'][$n]);
