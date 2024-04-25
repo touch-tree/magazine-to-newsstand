@@ -301,6 +301,7 @@ class digi_pdf_to_html
        
         self::sortByTopThenLeftAsc($obj);
 
+
         //-----------------
         //text related
         pdf_to_html_remove_last_hyphen::process($obj);
@@ -320,6 +321,8 @@ class digi_pdf_to_html
         pdf_to_html_filter_image_dimensions::process($obj);
         pdf_to_html_image_remove_faint::process($obj);
         pdf_to_html_image_remove_blurred::process($obj);
+        pdf_to_html_image_remove_combined::process($obj);
+        pdf_to_html_image_set_position::process($obj);
     }
 
     //#########################################
