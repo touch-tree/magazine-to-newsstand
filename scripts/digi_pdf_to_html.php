@@ -417,6 +417,7 @@ class digi_pdf_to_html
         new pth_groupTextIntersectWithBoundary($obj);
         new pth_groupOrphanBlocks($obj);
 
+        
         //-----------------
         //Post grouping
         new pth_mergeTextFromGroupAndFontId($obj);
@@ -428,6 +429,7 @@ class digi_pdf_to_html
         new pth_removeOverlappingImages($obj);
         new pth_removeImageNearWhite($obj);
         new pth_groupImages($obj);
+        
 
         //----------------
         //Header and Footer

@@ -15,8 +15,6 @@ class pth_mergeTextFromCentered
         //force sorting
         digi_pdf_to_html::sortByTopThenLeftAsc($obj);
         
-
-
         $arrayBlocks = [];
 
         //only collect relevant text-nodes
@@ -24,10 +22,10 @@ class pth_mergeTextFromCentered
         for( $n = 0; $n < $len; $n++ )
         {
            if( $obj['content'][$n]['tag'] !== "text")                       { continue; }   //ignore images
-           if( $obj['content'][$n]['height'] > $this->maxHeightThreshold )  { continue; }   //previously merged texts (thus gathered a certain height), but not assigned to a group yet.
            $arrayBlocks[$n] = $obj['content'][$n];
         }
 
+        
         //--------------------
         //calculate center position of texts, and link these with main indexes of the main data object $obj
         $arrayCentered = [];
@@ -43,7 +41,6 @@ class pth_mergeTextFromCentered
                     $arrayCentered[$centerIndx][] = $index;
                 }
         }
-
         //--------------------
 
         foreach ($arrayCentered as $leftVal => $indexes) 

@@ -31,7 +31,7 @@ class pth_removeInvisibleTexts
             $pixelLeft =    sys::posInt(round(($block['pagePercentageStartLeft']/100) * $imageWidth));
             $color =        images::getPixelColour($image,$pixelTop,$pixelLeft);
             
-            if(colours::colourIsSimilar($fontColor,$color))
+            if( isset($color) && colours::colourIsSimilar($fontColor,$color))
             {
                 unset($obj['content'][$index]);
             }
@@ -43,7 +43,7 @@ class pth_removeInvisibleTexts
                 $pixelTop =     sys::posInt(round(($block['pagePercentageEndTop']/100) * $imageHeight));
                 $pixelLeft =    sys::posInt(round(($block['pagePercentageEndLeft']/100) * $imageWidth));
                 $color =        images::getPixelColour($image,$pixelTop,$pixelLeft);
-                if(colours::colourIsSimilar($fontColor,$color))
+                if( isset($color) && colours::colourIsSimilar($fontColor,$color))
                 {
                     unset($obj['content'][$index]);
                 }  

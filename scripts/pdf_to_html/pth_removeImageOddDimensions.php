@@ -15,7 +15,7 @@ declare(strict_types=1);
 class pth_removeImageOddDimensions
 {
     
-    private  $maxVerticalRatio =   2.5;
+    private  $maxVerticalRatio =   2;
     private  $maxHorizontalRatio = 3.5;
     private  $maxImageWidth=       800;
 
@@ -41,6 +41,8 @@ class pth_removeImageOddDimensions
                 $w = images::$settings['imageWidth'];
                 $h = images::$settings['imageHeight'];
 
+                
+
                 if($w > $h)
                 {
                     //hotizontal
@@ -54,8 +56,10 @@ class pth_removeImageOddDimensions
                     if($ratio > $this->maxVerticalRatio )   { $isDeletable = true; }      
                 }
 
+            
                 //crap images
-                if($h < 25) { $isDeletable = true; }
+                if($h < 25)             { $isDeletable = true; }
+                if($w < 90 && $w <> $h) { $isDeletable = true; }
 
                 if($isDeletable)
                 {

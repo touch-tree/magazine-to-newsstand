@@ -7,10 +7,10 @@ class images
     
 	//############################################################################
 	//various image management
-	static public function returnImage(string $path)						{if(!is_file($path)) { sys::error("Image-path '".$path."' does not exist");} $imageType = exif_imagetype($path); switch($imageType)  {  case IMAGETYPE_JPEG:  $image = imagecreatefromjpeg($path);  break; case IMAGETYPE_GIF: $image = imagecreatefromgif($path);   break; case IMAGETYPE_PNG: $image = imagecreatefrompng($path); break; default: return null;  }  return $image;	}
-	static public function returnWidth($image)								{ return imagesx($image); }
+	static public function returnImage(string $path)					{if(!is_file($path)) { sys::error("Image-path '".$path."' does not exist");} $imageType = exif_imagetype($path); switch($imageType)  {  case IMAGETYPE_JPEG:  $image = imagecreatefromjpeg($path);  break; case IMAGETYPE_GIF: $image = imagecreatefromgif($path);   break; case IMAGETYPE_PNG: $image = imagecreatefrompng($path); break; default: return null;  }  return $image;	}
+	static public function returnWidth($image)							{ return imagesx($image); }
 	static public function returnHeight($image)							{ return imagesy($image); }
-	static public function getPixelColour($image, int $top, int $left) 	{ $rgb = imagecolorat($image, $left, $top); $colors = imagecolorsforindex($image, $rgb); $hexColor = sprintf("#%02x%02x%02x", $colors['red'], $colors['green'], $colors['blue']);return strtolower($hexColor);}
+	static public function getPixelColour($image, int $top, int $left) 	{ $width = self::returnWidth($image); $height = self::returnHeight($image); if ($left >= 0 && $left < $width && $top >= 0 && $top < $height) {$rgb = imagecolorat($image, $left, $top);} else { return null; } $colors = 	imagecolorsforindex($image, $rgb); $hexColor = sprintf("#%02x%02x%02x", $colors['red'], $colors['green'], $colors['blue']); return strtolower($hexColor);}
 
 	//############################################################################
     //html base64 image data

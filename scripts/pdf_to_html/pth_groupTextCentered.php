@@ -17,6 +17,7 @@ class pth_groupTextCentered
         $arrayCentered =    [];
         foreach ($obj['content'] as $index => $properties) 
         {
+                if($properties['tag'] === "image") { continue; }
                 $centerValue = sys::posInt(ceil(($properties['left'] + ($properties['left'] + $properties['width'])) / 2));
                 $centerIndx =  $this->findIndex($arrayCentered,$centerValue);
 
@@ -37,6 +38,7 @@ class pth_groupTextCentered
 
             $lastProp = null;
             $arrayIndexToGroup=[];
+
             foreach ($clone as $index => $properties) 
             {
                 //next line spacing must be within range/allowence
@@ -51,6 +53,7 @@ class pth_groupTextCentered
                 $arrayIndexToGroup[]=$index;
                 $lastProp = $properties;
             }
+
 
             $len = sizeof($arrayIndexToGroup);
             if($len > 1)
@@ -76,6 +79,8 @@ class pth_groupTextCentered
                     $obj['content'][$indexPrev]['groupNumber'] =    $groupId;
                 } 
 
+            
+            
             } 
         }
 

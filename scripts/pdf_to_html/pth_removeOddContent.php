@@ -16,8 +16,8 @@ class pth_removeOddContent
             $delete=false;
 
              //in-design rest code
-             if(stristr($properties['content'],".indd"))    { $delete=true; }  
-
+             if(stristr($properties['content'],".indd"))        { $delete=true; }  
+            
             //out of place (html) characters
             $htmlDecoded = sys::returnAlphaNum(html_entity_decode($properties['content']));
             if(sys::length( $htmlDecoded) == 0)                    { $delete=true; }    

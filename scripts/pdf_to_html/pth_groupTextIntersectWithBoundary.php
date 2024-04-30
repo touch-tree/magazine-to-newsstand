@@ -7,6 +7,7 @@ class pth_groupTextIntersectWithBoundary
 
     public function __construct(&$obj)
     {
+        
         //--------------
         //force sorting
         digi_pdf_to_html::sortByTopThenLeftAsc($obj);
@@ -14,6 +15,8 @@ class pth_groupTextIntersectWithBoundary
         $objBlocks = digi_pdf_to_html::returnProperties($obj['content'],"tag","text");
         $keys = array_keys($objBlocks);
         $len = sizeof($keys);
+
+
         for( $n=0; $n < $len; $n++ )
         {
             $index =        $keys[$n];
@@ -35,21 +38,15 @@ class pth_groupTextIntersectWithBoundary
                 $propNext =  $objBlocks[$indexNext];         
             }
 
-            $found=false;
+
             $indexesToGroup=[];
-            if($this->touchesBoundary( $propPrev, $properties))             {  $found = true;  }
-            if(!$found && $this->touchesBoundary( $properties, $propNext))  {  $found = true;  }
-            if($found)
-            {
-                
-                if(!in_array($index,$indexesToGroup))                              { $indexesToGroup[]=$index;}
-                if(isset($indexPrev) && !in_array($indexPrev,$indexesToGroup) )    { $indexesToGroup[]=$indexPrev;}
-                if(isset($indexNext) && !in_array($indexNext,$indexesToGroup) )    { $indexesToGroup[]=$indexNext;}  
-            }
+            if($this->touchesBoundary( $propPrev, $properties))                                 { $indexesToGroup[]=$index; $indexesToGroup[]=$indexPrev; }
+            if(sizeof($indexesToGroup)==0 && $this->touchesBoundary( $properties, $propNext))   { $indexesToGroup[]=$index; $indexesToGroup[]=$indexNext;  }
 
             sort($indexesToGroup);
             $len2 = sizeof($indexesToGroup);
             if($len2 <= 1) { continue; }
+
             $arrayGroupId=[];
             for( $i=0; $i < $len2; $i++ )
             {
@@ -76,6 +73,7 @@ class pth_groupTextIntersectWithBoundary
 
         //-----------------------------------------------------------------------
         //the second variant
+        
         $arrayBlocks = [];
         foreach ($obj['content'] as $index => $properties) 
         {
@@ -105,7 +103,7 @@ class pth_groupTextIntersectWithBoundary
 
             $arrayBlocks[$index]=$properties;  
         }
-
+        
         //---------------------------------------------------------------------
         
         
