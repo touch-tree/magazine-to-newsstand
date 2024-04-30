@@ -1,33 +1,26 @@
 <?php
+declare(strict_types=1);
 
-class pdf_to_html_text_centered_merging
+/*
+    Group text sections that have a similar centered-offset (margin set in $maxcenterMarginThreshold )
+    Grouping is done for texts with the same fontId  
+*/
+
+class pth_mergeTextFromCenterOffset
 {
+    private  $maxTextYSeparator =            8; //max spacing between 2 lines 
+    private  $maxHeightThreshold=            60; 
+    private  $maxcenterMarginThreshold=      6;
 
-    static private  $maxTextYSeparator =            8; //max spacing between 2 lines 
-    static private  $maxHeightThreshold=            60; 
-    static private  $maxcenterMarginThreshold=      4;
-    //#####################################################################
-    static private function findIndex(array $array, int $centerValue):?int
+    public function __construct(&$obj)
     {
-        $min = $centerValue - self::$maxcenterMarginThreshold;
-        $max = $centerValue + self::$maxcenterMarginThreshold;
-        for($n = $min; $n<=$max;$n++)
-        {
-            if(isset($array[$n])) { return $n;}
-        }
-
-        return null;
-    }
-    //#####################################################################
-
-    static public function process(&$obj):void
-    {	
         //-----------------------------------------------
         //force sorting
-        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
+        digi_pdf_to_html::sortByTopThenLeftAsc($obj); 
 
+   
+        //--------------------
         $arrayBlocks = [];
-
         //only collect relevant text-nodes
         $len = sizeof( $obj['content'] );  
         for( $n = 0; $n < $len; $n++ )
@@ -40,11 +33,10 @@ class pdf_to_html_text_centered_merging
         //--------------------
         //calculate center position of texts, and link these with main indexes of the main data object $obj
         $arrayCentered = [];
-
         foreach ($arrayBlocks as $index => $properties) 
         {
                 $centerValue = ceil(($properties['left'] + ($properties['left'] + $properties['width'])) / 2);
-                $centerIndx =  self::findIndex($arrayCentered,$centerValue);
+                $centerIndx =  $this->findIndex($arrayCentered,$centerValue);
                 if(!isset($centerIndx)){
                     $arrayCentered[$centerValue]=[$index];
                 }
@@ -75,18 +67,39 @@ class pdf_to_html_text_centered_merging
                 }
 
                 //next line spacing must be within range/allowence
-                if(abs($properties['top'] - ($propertiesPrev['top'] + $propertiesPrev['height']) ) > self::$maxTextYSeparator)                      
+                if(abs($properties['top'] - ($propertiesPrev['top'] + $propertiesPrev['height']) ) > $this->maxTextYSeparator)                      
                 {
                      continue;  
                 }
 
+                
                 digi_pdf_to_html::mergeBlocks($obj,$indexPrev,$index,false);     
             }
 
         }
 
+        $obj['content'] = array_values($obj['content']); //re-index data
+
+
+
+
     }
-    //#####################################################################
+
+    //##############################################################
+    static private function findIndex(array $array, int $centerValue):?int
+    {
+        $min = $centerValue - $this->maxcenterMarginThreshold;
+        $max = $centerValue + $this->maxcenterMarginThreshold;
+        for($n = $min; $n<=$max;$n++)
+        {
+            if(isset($array[$n])) { return $n;}
+        }
+
+        return null;
+    }
+    //###############################################################
+
+
 
 }
 
