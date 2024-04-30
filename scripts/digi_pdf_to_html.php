@@ -392,6 +392,7 @@ class digi_pdf_to_html
         $obj = &digi_pdf_to_html::$arrayPages[$page]; 
         self::sortByTopThenLeftAsc($obj);
 
+
     
         //-----------------
         //TEXT related rules (before any merger!)
@@ -414,7 +415,7 @@ class digi_pdf_to_html
         new pth_groupTextFromLeftOffset($obj);
         new pth_groupTextCentered($obj);
         new pth_groupTextIntersectWithBoundary($obj);
-        
+        new pth_groupOrphanBlocks($obj);
 
         //-----------------
         //Post grouping
@@ -426,12 +427,14 @@ class digi_pdf_to_html
         new pth_removeImageBlurred($obj);
         new pth_removeOverlappingImages($obj);
         new pth_removeImageNearWhite($obj);
-        new pth_repositionImagesAfterGrouping($obj);
+        new pth_groupImages($obj);
 
         //----------------
         //Header and Footer
         new pth_removeHeader($obj);
         new pth_removeFooter($obj);
+
+      
       
     }
 
