@@ -1,17 +1,19 @@
 <?php
+declare(strict_types=1);
 /*
         Calculates the new top-position for the image after a grouped section
     
 */
-class pdf_to_html_image_set_position
-{
-    //#########################################################################
 
-    static public function process(&$obj):void
+class pth_repositionImagesAfterGrouping
+{
+    public function __construct(&$obj)
     {
+          
+
             //force sorting
             digi_pdf_to_html::sortByTopThenLeftAsc($obj);
-                    
+                                
             //get groups properties
             $objGroups = [];
             foreach ($obj['content'] as $index => $properties) 
@@ -39,7 +41,7 @@ class pdf_to_html_image_set_position
                         $objGroups[$groupId]['minLeft'] = $left;     
                     }
             }
-          
+
             //relocate the image (not part of a group)
             foreach ($obj['content'] as $index => $properties) 
             {
@@ -58,8 +60,9 @@ class pdf_to_html_image_set_position
             }
 
 
+
+        
     }
-    //#####################################################################
 
 }
 

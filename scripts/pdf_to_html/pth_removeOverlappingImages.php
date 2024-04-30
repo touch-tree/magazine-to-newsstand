@@ -1,24 +1,30 @@
 <?php
+declare(strict_types=1);
+
+
+//#####################################################################
 /*
 
     Detect if an image if fully embedded within another one. (note: ignore overlapping ones).
     When an image is fully embedded within an other one, it is a design helper-image, and can be removed.
     
 */
-class pdf_to_html_image_remove_combined
+//#####################################################################
+class pth_removeOverlappingImages
 {
-    //#########################################################################
+    
 
-    static public function process(&$obj):void
+
+    public function __construct(&$obj)
     {
-         //force sorting
-         digi_pdf_to_html::sortByTopThenLeftAsc($obj);
+        //force sorting
+        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
 
-         $arrayBlocks=          [];
-         foreach ($obj['content'] as $index => $properties) 
-         {
-             if($properties['tag'] !== "image") { continue; }
- 
+        $arrayBlocks=          [];
+        foreach ($obj['content'] as $index => $properties) 
+        {
+            if($properties['tag'] !== "image") { continue; }
+
                 foreach ($arrayBlocks as $index2 => $properties2) 
                 {
                         if(
@@ -33,14 +39,17 @@ class pdf_to_html_image_remove_combined
                                 
                         }
                 }
- 
-             $arrayBlocks[$index]=$properties;
-         }
 
-         $obj['content'] = array_values($obj['content']); //re-index data object
+            $arrayBlocks[$index]=$properties;
+        }
+
+        $obj['content'] = array_values($obj['content']); //re-index data object
+
+
 
     }
-    //#####################################################################
+
+    
 
 }
 

@@ -1,27 +1,15 @@
 <?php
+declare(strict_types=1);
+//########################################################
 
-class pdf_to_html_text_centered_groupnumbers
+class pth_groupTextCentered
 {
+    private  $maxTextYSeparator =            8; //max spacing between 2 sections 
+    private  $maxcenterMarginThreshold=      6;
 
-    static private  $maxTextYSeparator =            8; //max spacing between 2 sections 
-    static private  $maxcenterMarginThreshold=      6;
-    //#####################################################################
-    static private function findIndex(array $array, int $centerValue):?int
+    public function __construct(&$obj)
     {
-        $min = $centerValue - self::$maxcenterMarginThreshold;
-        $max = $centerValue + self::$maxcenterMarginThreshold;
-        for($n = $min; $n<=$max;$n++)
-        {
-            if(isset($array[$n])) { return $n;}
-        }
-
-        return null;
-    }
-    //#####################################################################
-    static public function process(&$obj):void
-    {	
-        
-        //force sorting
+        //-----------------------------------------------  //force sorting
         digi_pdf_to_html::sortByTopThenLeftAsc($obj);
 
         //-----------------------------------------------
@@ -29,8 +17,8 @@ class pdf_to_html_text_centered_groupnumbers
         $arrayCentered =    [];
         foreach ($obj['content'] as $index => $properties) 
         {
-                $centerValue = ceil(($properties['left'] + ($properties['left'] + $properties['width'])) / 2);
-                $centerIndx =  self::findIndex($arrayCentered,$centerValue);
+                $centerValue = sys::posInt(ceil(($properties['left'] + ($properties['left'] + $properties['width'])) / 2));
+                $centerIndx =  $this->findIndex($arrayCentered,$centerValue);
 
                 if(!isset($centerIndx)){
                     $arrayCentered[$centerValue]=[$index];
@@ -54,7 +42,7 @@ class pdf_to_html_text_centered_groupnumbers
                 //next line spacing must be within range/allowence
                 if($lastProp)
                 {
-                    if(abs($properties['top'] - ($lastProp['top'] + $lastProp['height']) ) > self::$maxTextYSeparator)                      
+                    if(abs($properties['top'] - ($lastProp['top'] + $lastProp['height']) ) > $this->maxTextYSeparator)                      
                     {
                         break;  
                     }
@@ -92,7 +80,21 @@ class pdf_to_html_text_centered_groupnumbers
         }
 
     }
-    //#####################################################################
+
+    //###########################################################
+    private function findIndex(array $array, int $centerValue):?int
+    {
+        $min = $centerValue - $this->maxcenterMarginThreshold;
+        $max = $centerValue + $this->maxcenterMarginThreshold;
+        for($n = $min; $n<=$max;$n++)
+        {
+            if(isset($array[$n])) { return $n;}
+        }
+
+        return null;
+    }
+    //###########################################################
+
 
 }
 

@@ -5,8 +5,8 @@ class digi_pdf_to_html
 {
     static public array $arrayPages =       [];
     static public array $arrayFonts =       [];
+    static public ?int  $articleId =        null;
  
-
     static public ?string $processFolder =  null;
     static private bool $isInitiated =      false;
     static private ?string $baseCommand =   null;
@@ -95,8 +95,9 @@ class digi_pdf_to_html
 
             self::$arrayPages[$pageNumber] = [
                 'meta' => [
-                    'pageWidth' => $dom->getAttribute($page, 'width'),
-                    'pageHeight' => $dom->getAttribute($page, 'height')
+                    'pageNumber' => sys::posInt($pageNumber),
+                    'pageWidth' =>  sys::posInt($dom->getAttribute($page, 'width')),
+                    'pageHeight' => sys::posInt($dom->getAttribute($page, 'height'))
                 ],
                 'content' => []
             ];
@@ -113,16 +114,17 @@ class digi_pdf_to_html
                 $attributes = ['top', 'left', 'height', 'width'];
                 foreach ($attributes as $attribute)  { if (!$dom->hasAttribute($node, $attribute)) {continue 2;}  }
 
-                $top =      $dom->getAttribute($node, 'top');
-                $left =     $dom->getAttribute($node, 'left');
-                $height =   $dom->getAttribute($node, 'height');
-                $width =    $dom->getAttribute($node, 'width');
+                $top =     sys::posInt($dom->getAttribute($node, 'top'));
+                $left =    sys::posInt($dom->getAttribute($node, 'left'));
+                $height =  sys::posInt($dom->getAttribute($node, 'height'));
+                $width =   sys::posInt($dom->getAttribute($node, 'width'));
 
                 //---------------------
                 //elements out of visual range
                 if ($top < 0 || $left < 0 || $height <= 0 || $width <= 0)   { continue; }
-                if ($top > $pageHeight || $left > $pageWidth )              { continue; }
-
+                if ($top >= $pageHeight || $left >= $pageWidth )            { continue; }
+                if ($left <=0  )                                            { continue; } /* likely from previous page */
+                if ($top <=0)                                               { continue; } /* likely from previous page */
                 //---------------------
                 //parse actual content
                 $content =  null;
@@ -242,7 +244,7 @@ class digi_pdf_to_html
     //merges two blocks togehter (in $arrayPages[$page]['content'])
     static public function mergeBlocks(array &$obj, int $baseIndex, int $appendIndex, bool $resetIndex = true ):void  
     {
-                
+     
         $objBase =      &$obj['content'][$baseIndex];
         $objAppend =    &$obj['content'][$appendIndex];
 
@@ -280,6 +282,97 @@ class digi_pdf_to_html
         
     }
 
+    //--------------------------------------------
+    //BLOCK POSITIONING INFO
+    //extends block location info with extended info 
+    static public function blockPositioning(array &$obj, int $index):array  
+    {
+        $block = $obj['content'][$index];
+        $block['centerHorizontal'] =            round(($block['left'] +  $block['left']+$block['width']) / 2 );  
+        $block['centerVertical'] =              round(($block['top'] +  $block['top']+$block['height']) / 2 ); 
+        $block['pagePercentageStartLeft'] =     round(($block['left'] / $obj['meta']['pageWidth']) * 100,2);
+        $block['pagePercentageStartTop'] =      round(($block['top'] / $obj['meta']['pageHeight']) * 100,2);
+        $block['pagePercentageCenterLeft'] =    round(($block['pagePercentageStartLeft'] / $obj['meta']['pageWidth']) * 100,2);
+        $block['pagePercentageCenterTop'] =     round(($block['pagePercentageStartTop'] / $obj['meta']['pageHeight']) * 100,2);
+        $block['pagePercentageEndLeft'] =       round(( ($block['left'] + $block['width']) / $obj['meta']['pageWidth']) * 100,2);
+        $block['pagePercentageEndTop'] =        round(( ($block['top'] + $block['height'] ) / $obj['meta']['pageHeight']) * 100,2);
+
+        return $block;
+    }
+
+    //---------------------------------------------
+    //BOUNDARY DATA based on a range of (text-based) indexes
+    static public function getTextBoundaryBlock(array &$obj, array $indexes, bool $isTextOnly = true ):array  
+    {
+            $block=[];
+            $block['left']=     0;
+            $block['top']=      0;
+            $block['width']=    0;
+            $block['height']=   0;
+            $block['maxLeft']=  0;
+            $block['maxTop']=   0;
+        
+            $len = sizeof($indexes);
+
+
+            for($n=0;$n<$len;$n++)
+            {
+                    $index=             $indexes[$n];
+                    $properties =       $obj['content'][$index];
+                    if($isTextOnly && $properties['tag'] === "image") { continue ; }
+        
+                    if($block['left'] ==0 or $block['left'] > $obj['content'][$index]['left'] )
+                    {
+                        $block['left'] = $obj['content'][$index]['left'];
+                    }  
+
+                    if($block['top'] == 0 or $block['top'] > $obj['content'][$index]['top'] )
+                    {
+                        $block['top'] = $obj['content'][$index]['top'];
+                    } 
+
+                    $maxLeft = $obj['content'][$index]['left'] + $obj['content'][$index]['width'];
+                    if($maxLeft > $block['maxLeft'])
+                    {
+                        $block['maxLeft'] =  $maxLeft;   
+                    }
+
+                    $maxTop = $obj['content'][$index]['top'] + $obj['content'][$index]['height'];
+                    if($maxTop > $block['maxTop'])
+                    {
+                        $block['maxTop'] =  $maxTop;   
+                    }
+                    
+                    $block['width'] =  $block['maxLeft'] - $block['left'];
+                    $block['height'] = $block['maxTop'] -  $block['top'];
+
+            }
+
+            return $block;
+    }
+
+    //-----------------------------------------------
+    //FILTERED ON PROPERTY
+    //Note that the index-numbers themselves are preserved.
+    static public function  returnProperties(array $obj, string $property, $value) 
+    {
+        $result = array();
+        
+        // Filter $obj on property and value
+        foreach($obj as $key => $item) 
+        {
+            if(isset($item[$property]) && $item[$property] == $value)
+             {
+                $result[$key] = $item;
+            }
+        }
+        
+
+        
+        return $result;
+    }
+
+
     //#################################################################################
     //#################################################################################
     //#################################################################################
@@ -290,39 +383,56 @@ class digi_pdf_to_html
     //#################################################################################
     //#################################################################################
     //execute logical components. Rules:
-    // 1) All done by object reference func(&$obj) { ... }
-    // 2) Always apply one single method process($obj)
-    // 3) try to keep classes in order
+    // 1) All done by object reference in the constructor __construct(&$obj) {}
+    // 2) when adding new functions inbetween other ones or changing order, please consult dev-team first!
 
     private static function setRulesLogic(int $page): void
     {
         
         $obj = &digi_pdf_to_html::$arrayPages[$page]; 
-       
         self::sortByTopThenLeftAsc($obj);
 
+    
+        //-----------------
+        //TEXT related rules (before any merger!)
+        new pth_removeInvisibleTexts($obj);
+        new pth_removeLastHyphen($obj);
+        new pth_removeOddContent($obj);
+
+    
+        //----------------
+        //TEXT merger attempts
+        new pth_absolutePositioned($obj);
+        new pth_mergeTextFromLeftOffset($obj);
+        new pth_mergeTextFromColumns($obj);
+        new pth_mergeTextFromRightOffset($obj);
+        new pth_mergeTextBlocksFromRightOffset($obj);
+        new pth_mergeTextFromCentered($obj);
+        
+        //----------------
+        //TEXT grouping attempts
+        new pth_groupTextFromLeftOffset($obj);
+        new pth_groupTextCentered($obj);
+        new pth_groupTextIntersectWithBoundary($obj);
+        
 
         //-----------------
-        //text related
-        pdf_to_html_remove_last_hyphen::process($obj);
-        pdf_to_html_remove_odd_content::process($obj);
-        pdf_to_html_text_leftoffset_merging::process($obj);
-        pdf_to_html_text_centered_merging::process($obj);
-        pdf_to_html_text_columns_merging::process($obj);
-        pdf_to_html_footer_removal::process($obj);
-        pdf_to_html_header_removal::process($obj);
-        pdf_to_html_text_leftoffset_groupnumbers::process($obj);
-        pdf_to_html_text_intersect_groupnumbers::process($obj);
-        pdf_to_html_text_centered_groupnumbers::process($obj);
-        pdf_to_html_text_orphan_merging::process($obj);
-      
+        //Post grouping
+        new pth_mergeTextFromGroupAndFontId($obj);
+        
         //----------------
-        //image related from here on
-        pdf_to_html_filter_image_dimensions::process($obj);
-        pdf_to_html_image_remove_faint::process($obj);
-        pdf_to_html_image_remove_blurred::process($obj);
-        pdf_to_html_image_remove_combined::process($obj);
-        pdf_to_html_image_set_position::process($obj);
+        //IMAGE
+        new pth_removeImageOddDimensions($obj);
+        new pth_removeImageBlurred($obj);
+        new pth_removeOverlappingImages($obj);
+        new pth_removeImageNearWhite($obj);
+        new pth_repositionImagesAfterGrouping($obj);
+
+        //----------------
+        //Header and Footer
+        new pth_removeHeader($obj);
+        new pth_removeFooter($obj);
+      
     }
 
     //#########################################
@@ -409,7 +519,7 @@ class digi_pdf_to_html
                 if(isset($item['fontId']) && isset(self::$arrayFonts[$item['fontId']]))
                 {
                     $arr = self::$arrayFonts[$item['fontId']];
-                    $dom->setCssProperty($divBlock,"color",$arr['color']);
+                    //$dom->setCssProperty($divBlock,"color",$arr['color']);
                     $dom->setCssProperty($divBlock,"font-size",$arr['size']."px");
                 }
 
@@ -431,6 +541,7 @@ class digi_pdf_to_html
                 $dom->setAttribute($img,"data-basename",basename($imgPath));
                 $dom->appendLast($divBlock,$img);
                 $dom->setCssProperty($divBlock,"text-align","center");
+                $dom->setCssProperty($img,"max-width","100%");
 
             } 
         }

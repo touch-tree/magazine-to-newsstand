@@ -1,31 +1,25 @@
 <?php
+declare(strict_types=1);
 
-class pdf_to_html_text_leftoffset_merging
+/*
+    Group text sections that have a similar left-offset (margin set in $maxcMarginThreshold )
+    Grouping is done for texts with the same fontId  
+*/
+
+class pth_mergeTextFromLeftOffset
 {
+    private  $maxTextYSeparator =    8; //max spacing between 2 lines 
+    private  $maxcMarginThreshold=   3;
 
-    static private  $maxTextYSeparator =    8; //max spacing between 2 lines 
-    static private  $maxcMarginThreshold=   3;
-    //#####################################################################
-
-    static private function findIndex(array $array, int $val):?int
+    public function __construct(&$obj)
     {
-        $min = $val - self::$maxcMarginThreshold;
-        $max = $val + self::$maxcMarginThreshold;
-        for($n = $min; $n<=$max;$n++)
-        {
-            if(isset($array[$n])) { return $n;}
-        }
-
-        return null;
-    }
-
-    //#####################################################################
-    static public function process(&$obj):void
-    {	
         //-----------------------------------------------
         //force sorting
-        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
+        digi_pdf_to_html::sortByTopThenLeftAsc($obj); 
+
         
+
+
         //-----------------------------------------------
         //group all identical 'left' property values (for text-nodes) together and gather the relatied index values from the base-data object
         //note: the left-value can be used as indexing value in $arrayLeftCollection, and will not be used for actual positioning or calculations later on.
@@ -35,7 +29,7 @@ class pdf_to_html_text_leftoffset_merging
         {
             if($item['tag'] === "image") { continue; }
             $value = $item["left"];
-            $indx =  self::findIndex($arrayLeftCollection,$value);
+            $indx =  $this->findIndex($arrayLeftCollection,$value);
             if(!isset($indx)){
                 $arrayLeftCollection[$value]=[$index];
             }
@@ -66,19 +60,38 @@ class pdf_to_html_text_leftoffset_merging
                     }
 
                     //next line spacing must be within range/allowence
-                    if(abs($properties['top'] - ($propertiesPrev['top'] + $propertiesPrev['height']) ) > self::$maxTextYSeparator)                      
+                    if(abs($properties['top'] - ($propertiesPrev['top'] + $propertiesPrev['height']) ) > $this->maxTextYSeparator)                      
                     {
                          continue;  
                     }
-
+                    
                     digi_pdf_to_html::mergeBlocks($obj,$indexPrev,$index,false);     
                 }
         }
 
         $obj['content'] = array_values($obj['content']); //re-index data
- 
+
+
     }
-    //#####################################################################
+
+    //###########################################################
+    private function findIndex(array $array, int $val):?int
+    {
+        $min = $val - $this->maxcMarginThreshold;
+        $max = $val + $this->maxcMarginThreshold;
+        for($n = $min; $n<=$max;$n++)
+        {
+            if(isset($array[$n])) { return $n;}
+        }
+
+        return null;
+    }
+    //###########################################################
+   
+
+
+
+
 
 }
 

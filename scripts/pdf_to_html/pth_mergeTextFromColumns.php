@@ -1,16 +1,21 @@
 <?php
+declare(strict_types=1);
 
-class pdf_to_html_text_columns_merging
+/*
+    Group text sections from text-columns
+ 
+*/
+
+class pth_mergeTextFromColumns
 {
+    private  $maxTextColumnSeparator =  30;  
 
-    static private  $maxTextColumnSeparator =  20;  
-
-    //#####################################################################
-    static public function process(&$obj):void
-    {	
-        
+    public function __construct(&$obj)
+    {
+        //-----------------------------------------------
         //force sorting
-        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
+        digi_pdf_to_html::sortByTopThenLeftAsc($obj); 
+
 
         //-----------------------------------------------
         //group all identical 'top' property values (for text-nodes) together and gather the relatied index values from the base-data object
@@ -45,7 +50,7 @@ class pdf_to_html_text_columns_merging
 
                 //max distance between columns
                 $leftDiff = abs(   $properties['left'] - ($propertiesPrev['left'] + $propertiesPrev['width'] )  );
-                if($leftDiff > self::$maxTextColumnSeparator  )
+                if($leftDiff > $this->maxTextColumnSeparator  )
                 {
                      continue; 
                 }
@@ -56,6 +61,7 @@ class pdf_to_html_text_columns_merging
                      continue; 
                 } 
 
+              
                 digi_pdf_to_html::mergeBlocks($obj,$indexPrev,$index,false);    
 
             }
@@ -64,12 +70,12 @@ class pdf_to_html_text_columns_merging
 
         $obj['content'] = array_values($obj['content']); //re-index data
 
-
-
-
-
     }
-    //#####################################################################
+   
+
+    //#################################################
+
+
 
 }
 

@@ -1,35 +1,19 @@
 <?php
+declare(strict_types=1);
+//########################################################
 
-class pdf_to_html_text_leftoffset_groupnumbers
+class pth_groupTextFromLeftOffset
 {
+    private  $maxBlockYSeparator =  8; //max spacing between 2 sections 
+    private  $maxcMarginThreshold=  3;
 
-    static private  $maxBlockYSeparator =  8; //max spacing between 2 sections 
-    static private  $maxcMarginThreshold=  3;
-    //#####################################################################
-
-    static private function findIndex(array $array, int $val):?int
+    public function __construct(&$obj)
     {
-        $min = $val - self::$maxcMarginThreshold;
-        $max = $val + self::$maxcMarginThreshold;
-        for($n = $min; $n<=$max;$n++)
-        {
-            if(isset($array[$n])) { return $n;}
-        }
-
-        return null;
-    }
-
-    //#####################################################################
-
-
-    static public function process(&$obj):void
-    {	
-        
-        //force sorting
-        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
-
-
         //-----------------------------------------------
+        //force sorting
+        digi_pdf_to_html::sortByTopThenLeftAsc($obj); 
+
+      //-----------------------------------------------
         //group all identical 'left' property values (for both image and text-nodes) together and gather the relatied index values from the base-data object
         //note: the left-value can be used as indexing value in $arrayLeftCollection, and will not be used for actual positioning or calculations later on.
         $arrayLeftCollection = [];
@@ -38,7 +22,7 @@ class pdf_to_html_text_leftoffset_groupnumbers
         {
             if($item['tag'] === "image") { continue; }
             $value = $item["left"];
-            $indx =  self::findIndex($arrayLeftCollection,$value);
+            $indx =  $this->findIndex($arrayLeftCollection,$value);
             if(!isset($indx)){
                 $arrayLeftCollection[$value]=[$index];
             }
@@ -63,8 +47,8 @@ class pdf_to_html_text_leftoffset_groupnumbers
                     $propertiesPrev =   $obj['content'][$indexPrev];
                     $groupId2 =         $propertiesPrev['groupNumber'];
 
-                    //,ax spacing between sections
-                    if(abs($properties['top'] - ($propertiesPrev['top'] + $propertiesPrev['height']) ) > self::$maxBlockYSeparator)                      
+                    //max spacing between sections
+                    if(abs($properties['top'] - ($propertiesPrev['top'] + $propertiesPrev['height']) ) > $this->maxBlockYSeparator)                      
                     {
                          continue;  
                     }
@@ -84,13 +68,25 @@ class pdf_to_html_text_leftoffset_groupnumbers
 
                        
                 }
-        }
-
-        
+        }  
 
 
     }
-    //#####################################################################
+
+    //###########################################################
+    private function findIndex(array $array, int $val):?int
+    {
+        $min = $val - $this->maxcMarginThreshold;
+        $max = $val + $this->maxcMarginThreshold;
+        for($n = $min; $n<=$max;$n++)
+        {
+            if(isset($array[$n])) { return $n;}
+        }
+
+        return null;
+    }
+    //###########################################################
+
 
 }
 

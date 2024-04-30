@@ -1,23 +1,20 @@
 <?php
+declare(strict_types=1);
 
-class pdf_to_html_footer_removal
+class pth_removeFooter
 {
+    
+    private $maxBottomMargin = 65;
 
-    static private  $maxBottomMargin =  60; //max spacing bottom and text
-
-    //#####################################################################
-
-
-
-    //#####################################################################
-    static public function process(&$obj):void
-    {	
+    public function __construct(&$obj)
+    {
+        
         //-----------------------------------------------
         //force sorting
         digi_pdf_to_html::sortByTopThenLeftAsc($obj);
         
         $pageHeight = $obj['meta']['pageHeight'];
-        $maxTop = $pageHeight - self::$maxBottomMargin;
+        $maxTop = $pageHeight - $this->maxBottomMargin;
 
         foreach ($obj['content'] as $index => $properties) 
         {
@@ -27,9 +24,9 @@ class pdf_to_html_footer_removal
 
         
         $obj['content'] = array_values($obj['content']); //re-index data object
+        
 
     }
-    //#####################################################################
 
 }
 
