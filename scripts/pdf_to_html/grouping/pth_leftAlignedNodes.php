@@ -2,42 +2,39 @@
 declare(strict_types=1);
 
 /*
-    - Merge text sections that have a similar left-offset (margin set in $margin )
-    - Merging is done for texts with the same fontSize  
-    - Nodes may not be grouped yet (argument set in returnProperties() ... )
+    - Merge nodes that have a similar left-offset (margin set in $margin ) 
+    - Nodes may be grouped already, and ungrouped nodes can then be assigned to the available group
     - for example:
 
-        section below would result in 4 mergers:
+        section below would result in 4 nodes being grouped into 2 groups:
 
-        --------------------
-        -----------
-        ----------------
-        --------------------
-
-
-        -------------------
-        --------------
-        -------------------
-        -------------------------------
-
-
-        -----------------       --------------
-        -----------------       ---------------
-        -----------------       ---------
-        -----------------       ------------
+        ### title ###
+        ----------------------
         ----------
-        -----------------       IMG
-        ----------
+        ------------------
+        ----------------------
+        ----- ----------------
 
-        the bottom example is a column layout; each column section will be merged
+        
+
+
+        ### title2 ###
+        ----------------------
+        ----------
+        ------------------
+        ----------------------
+        ----- ----------------
+
+
+
 */
 
-class pth_leftAlignedTexts
+class pth_leftAlignedNodes
 {    
     private $margin = 3;
     private $maxTextYSeparator =   8;
-    private $arrayLeftCollection = [];
-    
+
+
     public function __construct(&$obj)
     {
         digi_pdf_to_html::sortByTopThenLeftAsc($obj);
@@ -50,7 +47,7 @@ class pth_leftAlignedTexts
 
     private function execute(&$obj)
     {
-        $textNodes =                    digi_pdf_to_html::returnProperties($obj,"tag","text",false);    
+        $textNodes =                    digi_pdf_to_html::returnProperties($obj,"tag","text");    
         $this->arrayLeftCollection =    digi_pdf_to_html::collectPropertyValues($textNodes,"left",$this->margin);
 
         foreach ($this->arrayLeftCollection as $leftVal => $indexes) 
@@ -72,15 +69,11 @@ class pth_leftAlignedTexts
                         $node2=         $obj['content'][$index2];
                         $boundary2=     digi_pdf_to_html::returnBoundary($obj,[$index2]);  
                         
-                        //make sure font-size is the same
-                        if( $node['fontSize'] <> $node2['fontSize'] ) { continue; }
-
-                         //spacing to the next line must be within range/allowence
+                        //spacing to the next line must be within range/allowence
                         if( ($boundary2['top'] - $boundary['maxTop'] ) > $this->maxTextYSeparator) {continue; }
 
-                        digi_pdf_to_html::mergeNodes($obj,$index,$index2); 
-                        $this->execute($obj);
-                        return;
+                        digi_pdf_to_html::groupNodes($obj,[$index,$index2]);
+              
                     }
                 }     
         }
