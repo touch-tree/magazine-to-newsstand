@@ -5,7 +5,7 @@ declare(strict_types=1);
     - grouop text-nodes that are still ungrouped but fall WITHIN another group-boundary 
 */
 
-class pth_ungroupedTextWithinBoundary
+class pth_ungroupedTextWithinOtherUngroupedText
 {    
    
     public function __construct(&$obj)
@@ -20,23 +20,29 @@ class pth_ungroupedTextWithinBoundary
 
     private function execute(&$obj)
     {
+        
+        
         $textNodes =        digi_pdf_to_html::returnProperties($obj,"tag","text",false);   //ungrouped texts!
-        $assignedGroups =   digi_pdf_to_html::returnAssignedGroups($obj);
-        $len =              sizeof($assignedGroups);
-        for($n=0;$n<$len;$n++)
+        foreach ($textNodes as $index => $properties) 
         {
-            $boundary = digi_pdf_to_html::returnGroupBoundary($obj,$assignedGroups[$n]);
+            $boundary = digi_pdf_to_html::returnBoundary($obj,[$index]);
             
-            foreach ($textNodes as $index => $properties) 
+            foreach ($textNodes as $index2 => $properties2) 
             {
-                if(digi_pdf_to_html::nodeWithinBoundary($properties,$boundary))
+                if($properties === $properties2) {continue;}
+                if(digi_pdf_to_html::nodeWithinBoundary($properties2,$boundary))
                 {
-                    //get index from any nodes from this group
-                    $groupNodes = digi_pdf_to_html::returnProperties($obj,"groupNumber", $assignedGroups[$n],true);
-                    $index2 = array_keys($groupNodes)[0];
-                    digi_pdf_to_html::groupNodes($obj,[$index,$index2]);
+                    $grouped = digi_pdf_to_html::groupNodes($obj,[$index,$index2]);
+                    if($grouped)
+                    {
+                        $this->execute($obj);  
+                        return;
+                    }
+         
+                    
                 }
             }
+
         }
      
     }

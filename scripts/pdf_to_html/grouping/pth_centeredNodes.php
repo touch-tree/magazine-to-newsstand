@@ -59,7 +59,14 @@ class pth_centeredNodes
                          //spacing to the next line must be within range/allowence
                         if( ($boundary2['top'] - $boundary['maxTop'] ) > $this->maxTextYSeparator) {continue; }
 
-                        digi_pdf_to_html::groupNodes($obj,[$index,$index2]);
+                        $grouped = digi_pdf_to_html::groupNodes($obj,[$index,$index2]);
+                        if($grouped)
+                        {
+                            $this->execute($obj);  
+                            return;
+                        }
+                       
+                
                     }
                 }
         }

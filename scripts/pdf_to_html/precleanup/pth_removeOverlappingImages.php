@@ -22,6 +22,8 @@ class pth_removeOverlappingImages
     //#####################################################################
     private function cleanup(&$obj)
     {
+        
+    
         $imageNodes = digi_pdf_to_html::returnProperties($obj,"tag","image");
         foreach( $imageNodes as $index => $properties) 
         {
@@ -31,7 +33,13 @@ class pth_removeOverlappingImages
                 if($properties === $properties2) { continue; }
                 if(digi_pdf_to_html::nodeWithinBoundary($properties2,$objBoundary))
                 {
-                    digi_pdf_to_html::removeIndex($obj,$index2);
+                    
+                    //remove the smallest image (assuming it is used as layout-helper)
+                    $area1 = $properties['width'] *  $properties['height'];
+                    $area2 = $properties2['width'] * $properties2['height'];
+                    $removalIndex = $index;
+                    if($area1 > $area2) { $removalIndex = $index2;}                    
+                    digi_pdf_to_html::removeIndex($obj,$removalIndex);
                     $this->cleanup($obj);
                     return;
                 }

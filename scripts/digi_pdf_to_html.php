@@ -339,11 +339,10 @@ class digi_pdf_to_html
     static public function removeIndex(array &$obj, int $index):void                                                            {if(!isset($obj['content'])) { sys::error("removeIndex requires the object to have the content-property");} unset($obj['content'][$index]); self::reIndex($obj);}
 
     //WITHIN BOUNDARY
-    static public function nodeWithinBoundary(array $properties, array $objBoundary):bool                                       {if( $properties['left'] <  $objBoundary['left'] || $properties['left'] >  $objBoundary['maxLeft']|| $properties['top'] <   $objBoundary['top'] || $properties['top'] >   $objBoundary['maxTop']   ) { return false; } return true;  }
+    static public function nodeWithinBoundary(array $properties, array $objBoundary):bool                                       { $maxLeft = $properties['left'] + $properties['width'] ; $maxTop  = $properties['top'] + $properties['height'] ; if ($properties['left'] >= $objBoundary['left'] && $maxLeft <= $objBoundary['maxLeft'] && $properties['top'] >= $objBoundary['top'] && $maxTop <= $objBoundary['maxTop']) {return true;} return false;}
 
    //OVERLAP BOUNDARY
-   static public function nodeOverlapsBoundary(array $properties, array $objBoundary):bool                                      {$left =  $properties['left']; $top  =  $properties['top']; $maxLeft =  $properties['left'] + $properties['width']; $maxTop =  $properties['top'] + $properties['height']; if(  $maxLeft >  $objBoundary['left'] &&  $maxLeft <  $objBoundary['maxLeft'] &&  $maxTop >  $objBoundary['top'] &&  $maxTop <  $objBoundary['maxTop']) { return true; } if( $left > $objBoundary['left'] && $left < $objBoundary['maxLeft'] && $maxTop > $objBoundary['top'] && $maxTop < $objBoundary['maxTop']) { return true; } if( $maxLeft > $objBoundary['left']  && $maxLeft < $objBoundary['maxLeft'] && $top > $objBoundary['top']  && $top < $objBoundary['maxTop']) { return true;} if( $left > $objBoundary['left']  && $left < $objBoundary['maxLeft'] && $top >  $objBoundary['top'] && $top < $objBoundary['maxTop']) { return true; } return false;}
-
+   static public function nodeOverlapsBoundary(array $properties, array $objBoundary):bool                                      { $left =  $properties['left'];  $top  =  $properties['top'];  $maxLeft =  $properties['left'] + $properties['width'];  $maxTop =  $properties['top'] + $properties['height'];  if ($left >  $objBoundary['maxLeft'] ||  $maxLeft < $objBoundary['left']) { return false;} if ($top >  $objBoundary['maxTop']|| $maxTop <= $objBoundary['top']) {return false;} return true; }
 
     //MERGE NODES. Merges two blocks together (in $arrayPages[$page]['content']) and (by default) applies reIndex(). Note the base-Node will get new dimensions (top, left, height etc...) 
     static public function mergeNodes(array &$obj, int $baseIndex, int $appendIndex, bool $resetIndex = true ):void             { $objBase =  &$obj['content'][$baseIndex];  $objAppend =    &$obj['content'][$appendIndex];   if($objBase['tag'] === "text" && $objAppend['tag'] === "text"  ){ $txt1 = sys::strtoupper($objBase['content']); $txt2 = $objBase['content']; if($txt1 === $txt2 && sys::length($txt1) > 1) {  $objAppend['content'] = sys::strtoupper($objAppend['content']);   } } $objBase['content'] .=  $objAppend['content'];  $objBase['left']     =  min([$objBase['left'],$objAppend['left']]); $objBase['top']      =  min([$objBase['top'],$objAppend['top']]);  /* calc new width */ $finalLeft1 =  $objBase['left'] +  $objBase['width']; $finalLeft2 =  $objAppend['left'] +  $objAppend['width']; $objBase['width'] = max([$finalLeft1,$finalLeft2]) - $objBase['left']; /* calc new height */  $finalTop1 = $objBase['top'] + $objBase['height'];  $finalTop2 = $objAppend['top'] + $objAppend['height']; $objBase['height'] = max([$finalTop1,$finalTop2]) - $objBase['top'];  unset($obj['content'][$appendIndex]);  if($resetIndex) {self::reIndex($obj);} }
@@ -361,7 +360,7 @@ class digi_pdf_to_html
     public static function getNewGroupNumber(&$obj): int                                                                        {$groupNumbers = array_column($obj['content'], 'groupNumber');return max($groupNumbers) + 1;}
 
     //CREATE GROUPS from nodes
-    static public function groupNodes(array &$obj, array $indexes):void                                                          {$nodes =   self::returnNodesFromIndexes($obj,$indexes);$groups =    self::collectPropertyValues($nodes,"groupNumber",0);$arrayGroupNumbers =    array_values(array_unique(array_keys($groups)));if(!in_array(0,$arrayGroupNumbers)) { return; } $groupId = max($arrayGroupNumbers); if($groupId == 0) {$groupId = self::getNewGroupNumber($obj);} foreach ($nodes as $index => $properties)  {if($properties['groupNumber'] > 0 ) {continue;} $obj['content'][$index]['groupNumber'] = $groupId; }}
+    static public function groupNodes(array &$obj, array $indexes):bool                                                          {$nodes =   self::returnNodesFromIndexes($obj,$indexes);$groups =    self::collectPropertyValues($nodes,"groupNumber",0);$arrayGroupNumbers =    array_values(array_unique(array_keys($groups)));if(!in_array(0,$arrayGroupNumbers)) { return false; } $groupId = max($arrayGroupNumbers); if($groupId == 0) {$groupId = self::getNewGroupNumber($obj);} foreach ($nodes as $index => $properties)  {if($properties['groupNumber'] > 0 ) {continue;} $obj['content'][$index]['groupNumber'] = $groupId; } return true;}
     
     //GET ALL ASSIGNED GROUPS
     static public function returnAssignedGroups(array &$obj):array                                                              {$groupNumbers = array_map(function($item) { return $item['groupNumber'];}, $obj['content']); $groupNumbers = array_filter($groupNumbers, function($number) { return $number > 0;}); $groupNumbers = array_values(array_unique($groupNumbers)); return $groupNumbers;}
@@ -395,6 +394,7 @@ class digi_pdf_to_html
         new pth_removeFooter($obj);
         new pth_removeOverlappingImages($obj);
 
+        
         //---------------------------------------
         //text merger (preserve sequence!!!!!!!) before any grouping attempt is performed
         new pth_floatingTexts($obj);
@@ -409,9 +409,12 @@ class digi_pdf_to_html
         //grouping
         new pth_leftAlignedNodes($obj);
         new pth_centeredNodes($obj);
-        new pth_ungroupedTextWithinBoundary($obj);
-        new pth_ungroupedImageWithinBoundary($obj);
-        new pth_ungroupedImageOverlapBoundary($obj);
+        new pth_ungroupedTextWithinOtherUngroupedText($obj);
+        new pth_ungroupedTextWithinGroupedBoundary($obj);
+        new pth_ungroupedImageWithinGroupedBoundary($obj);
+        new pth_ungroupedImageOverlapGroupedBoundary($obj);
+        new pth_ungroupedTextOverlapGroupedBoundary($obj);
+        
 
         
         //code Josh here....
