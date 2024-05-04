@@ -58,14 +58,14 @@ class pth_leftAlignedNodes
 
                 for( $n=0; $n < $len; $n++ )
                 {
-                    $index=         $indexes[$n];
-                    $node =         $obj['content'][$index];
-                    $boundary=      digi_pdf_to_html::returnBoundary([$index]);
-                    $index2=        null;
-                    $node2=         null;
-
+          
                     if(isset($indexes[$n+1]))
                     {
+                        $index=         $indexes[$n];
+                        $node =         $obj['content'][$index];
+                        $boundary=      digi_pdf_to_html::returnBoundary([$index]);
+                        
+                        
                         $index2=        $indexes[$n+1];;
                         $node2=         $obj['content'][$index2];
                         $boundary2=     digi_pdf_to_html::returnBoundary([$index2]);  
