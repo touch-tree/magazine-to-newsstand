@@ -48,9 +48,10 @@ class pth_textColumns
     private  $marginRight = 8; 
     private  $marginTop =   2; //margin for top-value; 
     
-    public function __construct(&$obj)
+    public function __construct()
     {
-        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
+        $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber]; 
+        digi_pdf_to_html::sortByTopThenLeftAsc();
 
         //-------------------------------
         $this->execute($obj);       
@@ -68,12 +69,12 @@ class pth_textColumns
     private function scenario_a(&$obj):void
     {
 
-        $textNodes =  digi_pdf_to_html::returnProperties($obj,"tag","text",false);  
+        $textNodes =  digi_pdf_to_html::returnProperties("tag","text",false);  
         //--------------------------------------------
         //get maxLeft position
         foreach ($textNodes as $index => $properties) 
         {
-            $boundary = digi_pdf_to_html::returnBoundary($obj,[$index]);
+            $boundary = digi_pdf_to_html::returnBoundary([$index]);
             $textNodes[$index]['maxLeft'] = $boundary['maxLeft'];
         }
 
@@ -82,12 +83,12 @@ class pth_textColumns
         foreach ($arrayRightCollection as $maxLeft => $indexes) 
         {
                 //get (lowest) topvalue of $indexes. column-layouts must have same top)
-                $minTop = digi_pdf_to_html::returnMinMaxProperyValue($obj,"top",$indexes,false);
+                $minTop = digi_pdf_to_html::returnMinMaxProperyValue("top",$indexes,false);
 
                 //loop all nodes
                 foreach ($textNodes as $index => $properties) 
                 {
-                    $boundary = digi_pdf_to_html::returnBoundary($obj,[$index]);
+                    $boundary = digi_pdf_to_html::returnBoundary([$index]);
                     if($boundary['left'] <= $maxLeft)                                      { continue; } //the next column must have a larger left-position
                     if( abs($boundary['top'] - $minTop) > $this->marginTop)                { continue; } //top top-position does not match         
                     if( abs($boundary['left'] - $maxLeft) > $this->maxTextColumnSeparator) { continue; } //spacing to the next line must be within range/allowence
@@ -96,7 +97,7 @@ class pth_textColumns
 
                     if($properties['fontSize'] <> $obj['content'][$lastIndex]['fontSize']) { continue; }//fontsize does not match
 
-                    digi_pdf_to_html::mergeNodes($obj,$lastIndex,$index); 
+                    digi_pdf_to_html::mergeNodes($lastIndex,$index); 
                     $this->execute($obj);
                     return;
                 }
@@ -107,7 +108,7 @@ class pth_textColumns
     private function scenario_b(&$obj):void
     {
 
-        $textNodes =                    digi_pdf_to_html::returnProperties($obj,"tag","text",false);  
+        $textNodes =                    digi_pdf_to_html::returnProperties("tag","text",false);  
 
         //-----------------------------------------------
         //collect all identical 'top' property values (for text-nodes) together
@@ -122,7 +123,7 @@ class pth_textColumns
                 {
                     $index=         $indexes[$n];
                     $node =         $obj['content'][$index];
-                    $boundary=      digi_pdf_to_html::returnBoundary($obj,[$index]);
+                    $boundary=      digi_pdf_to_html::returnBoundary([$index]);
                     $index2=        null;
                     $node2=         null;
 
@@ -130,7 +131,7 @@ class pth_textColumns
                     {
                         $index2=        $indexes[$n+1];;
                         $node2=         $obj['content'][$index2];
-                        $boundary2=     digi_pdf_to_html::returnBoundary($obj,[$index2]);  
+                        $boundary2=     digi_pdf_to_html::returnBoundary([$index2]);  
                         
                         //make sure font-size is the same
                         if( $node['fontSize'] <> $node2['fontSize'] ) { continue; }
@@ -138,7 +139,7 @@ class pth_textColumns
                          //spacing to the next line must be within range/allowence
                         if( abs($boundary2['left'] - $boundary['maxLeft']) > $this->maxTextColumnSeparator) { continue; }
 
-                        digi_pdf_to_html::mergeNodes($obj,$index,$index2); 
+                        digi_pdf_to_html::mergeNodes($index,$index2); 
                         $this->execute($obj);
                         return;
                     }

@@ -12,9 +12,10 @@ declare(strict_types=1);
 class pth_removeOverlappingImages
 {    
 
-    public function __construct(&$obj)
+    public function __construct()
     {
-        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
+        $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber]; 
+        digi_pdf_to_html::sortByTopThenLeftAsc();
         //-------------------------------
         $this->cleanup($obj);       
     }
@@ -24,10 +25,10 @@ class pth_removeOverlappingImages
     {
         
     
-        $imageNodes = digi_pdf_to_html::returnProperties($obj,"tag","image");
+        $imageNodes = digi_pdf_to_html::returnProperties("tag","image");
         foreach( $imageNodes as $index => $properties) 
         {
-            $objBoundary = digi_pdf_to_html::returnBoundary($obj,[$index]);
+            $objBoundary = digi_pdf_to_html::returnBoundary([$index]);
             foreach( $imageNodes as $index2 => $properties2 ) 
             {
                 if($properties === $properties2) { continue; }
@@ -39,7 +40,7 @@ class pth_removeOverlappingImages
                     $area2 = $properties2['width'] * $properties2['height'];
                     $removalIndex = $index;
                     if($area1 > $area2) { $removalIndex = $index2;}                    
-                    digi_pdf_to_html::removeIndex($obj,$removalIndex);
+                    digi_pdf_to_html::removeIndex($removalIndex);
                     $this->cleanup($obj);
                     return;
                 }

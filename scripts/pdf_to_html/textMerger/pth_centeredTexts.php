@@ -28,9 +28,10 @@ class pth_centeredTexts
     private  $maxTextYSeparator =            8; //max spacing between 2 lines 
     private  $margin=                        6; //deviation margin from the center
 
-    public function __construct(&$obj)
+    public function __construct()
     {
-        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
+        $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber]; 
+        digi_pdf_to_html::sortByTopThenLeftAsc();
 
         //-------------------------------
         $this->execute($obj);       
@@ -40,12 +41,12 @@ class pth_centeredTexts
 
     private function execute(&$obj)
     {
-        $textNodes =                    digi_pdf_to_html::returnProperties($obj,"tag","text",false);  
+        $textNodes =                    digi_pdf_to_html::returnProperties("tag","text",false);  
 
         //get centered position
         foreach ($textNodes as $index => $properties) 
         {
-                   $boundary = digi_pdf_to_html::returnBoundary($obj,[$index]);
+                   $boundary = digi_pdf_to_html::returnBoundary([$index]);
                    $textNodes[$index]['center'] = round( ($boundary['left'] + $boundary['maxLeft']) / 2);
         }
 
@@ -60,7 +61,7 @@ class pth_centeredTexts
                 {
                     $index=         $indexes[$n];
                     $node =         $obj['content'][$index];
-                    $boundary=      digi_pdf_to_html::returnBoundary($obj,[$index]);
+                    $boundary=      digi_pdf_to_html::returnBoundary([$index]);
                     $index2=        null;
                     $node2=         null;
 
@@ -68,7 +69,7 @@ class pth_centeredTexts
                     {
                         $index2=        $indexes[$n+1];;
                         $node2=         $obj['content'][$index2];
-                        $boundary2=     digi_pdf_to_html::returnBoundary($obj,[$index2]);  
+                        $boundary2=     digi_pdf_to_html::returnBoundary([$index2]);  
                         
                         //make sure font-size is the same
                         if( $node['fontSize'] <> $node2['fontSize'] ) { continue; }
@@ -76,7 +77,7 @@ class pth_centeredTexts
                          //spacing to the next line must be within range/allowence
                         if( ($boundary2['top'] - $boundary['maxTop'] ) > $this->maxTextYSeparator) {continue; }
 
-                        digi_pdf_to_html::mergeNodes($obj,$index,$index2); 
+                        digi_pdf_to_html::mergeNodes($index,$index2); 
                         $this->execute($obj);
                         return;
                     }

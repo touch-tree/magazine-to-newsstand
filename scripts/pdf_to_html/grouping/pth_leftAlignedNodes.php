@@ -35,9 +35,10 @@ class pth_leftAlignedNodes
     private $maxTextYSeparator =   8;
 
 
-    public function __construct(&$obj)
+    public function __construct()
     {
-        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
+        $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber];    
+        digi_pdf_to_html::sortByTopThenLeftAsc();
 
         //-------------------------------
         $this->execute($obj);       
@@ -47,7 +48,7 @@ class pth_leftAlignedNodes
 
     private function execute(&$obj)
     {
-        $textNodes =                    digi_pdf_to_html::returnProperties($obj,"tag","text");    
+        $textNodes =                    digi_pdf_to_html::returnProperties("tag","text");    
         $this->arrayLeftCollection =    digi_pdf_to_html::collectPropertyValues($textNodes,"left",$this->margin);
 
         foreach ($this->arrayLeftCollection as $leftVal => $indexes) 
@@ -59,7 +60,7 @@ class pth_leftAlignedNodes
                 {
                     $index=         $indexes[$n];
                     $node =         $obj['content'][$index];
-                    $boundary=      digi_pdf_to_html::returnBoundary($obj,[$index]);
+                    $boundary=      digi_pdf_to_html::returnBoundary([$index]);
                     $index2=        null;
                     $node2=         null;
 
@@ -67,12 +68,12 @@ class pth_leftAlignedNodes
                     {
                         $index2=        $indexes[$n+1];;
                         $node2=         $obj['content'][$index2];
-                        $boundary2=     digi_pdf_to_html::returnBoundary($obj,[$index2]);  
+                        $boundary2=     digi_pdf_to_html::returnBoundary([$index2]);  
                         
                         //spacing to the next line must be within range/allowence
                         if( ($boundary2['top'] - $boundary['maxTop'] ) > $this->maxTextYSeparator) {continue; }
 
-                        $grouped = digi_pdf_to_html::groupNodes($obj,[$index,$index2]);
+                        $grouped = digi_pdf_to_html::groupNodes([$index,$index2]);
                         if($grouped)
                         {
                             $this->execute($obj);  

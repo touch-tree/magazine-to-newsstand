@@ -8,9 +8,10 @@ class pth_removeBlurredImages
 
     private  $arrayhandledImages=  [];
 
-    public function __construct(&$obj)
+    public function __construct()
     {
-        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
+        $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber]; 
+        digi_pdf_to_html::sortByTopThenLeftAsc();
         //-------------------------------
         $this->cleanup($obj);       
     }
@@ -18,7 +19,7 @@ class pth_removeBlurredImages
     //#####################################################################
     private function cleanup(&$obj)
     {
-        $imageNodes = digi_pdf_to_html::returnProperties($obj,"tag","image");
+        $imageNodes = digi_pdf_to_html::returnProperties("tag","image");
         foreach( $imageNodes as $index => $properties) 
         {
             if(in_array($properties['content'],$this->arrayhandledImages))   { continue; }
@@ -28,7 +29,7 @@ class pth_removeBlurredImages
             $blur  = $this->calculateBlur($img);
             if ($blur < 20) 
             {
-                digi_pdf_to_html::removeIndex($obj,$index);
+                digi_pdf_to_html::removeIndex($index);
                 $this->cleanup($obj);
                 return;
             }

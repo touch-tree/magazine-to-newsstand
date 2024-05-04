@@ -11,9 +11,10 @@ class pth_removeInvisibleTexts
     private $imageHeight =  null;
     private $image = null;
     
-    public function __construct(&$obj)
+    public function __construct()
     {
-        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
+        $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber]; 
+        digi_pdf_to_html::sortByTopThenLeftAsc();
         //-------------------------------
         //obtain image data
         $this->image = $this->returnImageFromPage($obj['meta']['pageNumber'] );
@@ -26,12 +27,12 @@ class pth_removeInvisibleTexts
     //#####################################################################
     private function cleanup(&$obj)
     {
-        $textNodes = digi_pdf_to_html::returnProperties($obj,"tag","text");
+        $textNodes = digi_pdf_to_html::returnProperties("tag","text");
 
         foreach( $textNodes as $index => $properties) 
         {
             $fontColor = $properties['fontColor'];
-            $block =     digi_pdf_to_html::returnBoundary($obj,[$index]);
+            $block =     digi_pdf_to_html::returnBoundary([$index]);
 
             //-------------------------------------
             //start block location
@@ -56,7 +57,7 @@ class pth_removeInvisibleTexts
             //delete node
             if($delete)
             {
-                digi_pdf_to_html::removeIndex($obj,$index);
+                digi_pdf_to_html::removeIndex($index);
                 $this->cleanup($obj);
                 return;
             }

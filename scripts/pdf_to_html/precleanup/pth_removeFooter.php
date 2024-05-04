@@ -8,9 +8,10 @@ class pth_removeFooter
 {    
     private $maxBottomMargin = 65;
     
-    public function __construct(&$obj)
+    public function __construct()
     {
-        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
+        $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber]; 
+        digi_pdf_to_html::sortByTopThenLeftAsc();
         //-------------------------------
         $this->cleanup($obj);       
     }
@@ -24,7 +25,7 @@ class pth_removeFooter
         foreach( $obj['content'] as $index => $properties) 
         {
             if($properties['top'] < $maxTop )   { continue; }  
-            digi_pdf_to_html::removeIndex($obj,$index);
+            digi_pdf_to_html::removeIndex($index);
             $this->cleanup($obj);
             return;
         }

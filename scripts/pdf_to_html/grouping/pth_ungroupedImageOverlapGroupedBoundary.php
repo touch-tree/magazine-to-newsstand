@@ -8,9 +8,10 @@ declare(strict_types=1);
 class pth_ungroupedImageOverlapGroupedBoundary
 {    
    
-    public function __construct(&$obj)
+    public function __construct()
     {
-        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
+        $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber]; 
+        digi_pdf_to_html::sortByTopThenLeftAsc();
 
         //-------------------------------
         $this->execute($obj);       
@@ -20,16 +21,16 @@ class pth_ungroupedImageOverlapGroupedBoundary
 
     private function execute(&$obj)
     {
-        $imageNodes =        digi_pdf_to_html::returnProperties($obj,"tag","image",false);   //ungrouped images!
-        $assignedGroups =    digi_pdf_to_html::returnAssignedGroups($obj);
+        $imageNodes =        digi_pdf_to_html::returnProperties("tag","image",false);   //ungrouped images!
+        $assignedGroups =    digi_pdf_to_html::returnAssignedGroups();
         $len =               sizeof($assignedGroups);
 
-        $boundary = digi_pdf_to_html::returnGroupBoundary($obj,1);
+        $boundary = digi_pdf_to_html::returnGroupBoundary(1);
     
         
         for($n=0;$n<$len;$n++)
         {
-            $boundary = digi_pdf_to_html::returnGroupBoundary($obj,$assignedGroups[$n]);
+            $boundary = digi_pdf_to_html::returnGroupBoundary($assignedGroups[$n]);
             
             foreach ($imageNodes as $index => $properties) 
             {
@@ -38,9 +39,9 @@ class pth_ungroupedImageOverlapGroupedBoundary
                 {
                     
                     //get index from any nodes from this group
-                    $groupNodes = digi_pdf_to_html::returnProperties($obj,"groupNumber", $assignedGroups[$n],true);
+                    $groupNodes = digi_pdf_to_html::returnProperties("groupNumber", $assignedGroups[$n],true);
                     $index2 = array_keys($groupNodes)[0];
-                    $grouped = digi_pdf_to_html::groupNodes($obj,[$index,$index2]);
+                    $grouped = digi_pdf_to_html::groupNodes([$index,$index2]);
                     if($grouped)
                     {
                         $this->execute($obj);  

@@ -11,9 +11,10 @@ class pth_floatingTexts
     private $maxcMarginThreshold = 3;
     private $maxTextYSeparator =   8;
     
-    public function __construct(&$obj)
+    public function __construct()
     {
-        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
+        $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber]; 
+        digi_pdf_to_html::sortByTopThenLeftAsc();
         //-------------------------------
         
         $this->execute($obj);       
@@ -37,7 +38,7 @@ class pth_floatingTexts
                 {
                         $indexes = $arrayGroups[$n];
                         if(sizeof($indexes) <= 1) {continue;}
-                        $objBoundary = digi_pdf_to_html::returnBoundary($obj,$indexes);
+                        $objBoundary = digi_pdf_to_html::returnBoundary($indexes);
                         $blocksToMove = [];
                         
                         //------------------------------
@@ -111,11 +112,11 @@ class pth_floatingTexts
         foreach ($arrayMergers as $src => $tgt) 
         {  
             if( in_array($src,$arrayHandledIndexes) or in_array($tgt,$arrayHandledIndexes) ) { continue;}
-            digi_pdf_to_html::mergeNodes($obj, $src, $tgt, false);  
+            digi_pdf_to_html::mergeNodes($src, $tgt, false);  
             $arrayHandledIndexes[]=$tgt; //target will be removed
         }
 
-        digi_pdf_to_html::reIndex($obj);
+        digi_pdf_to_html::reIndex();
         //----------------------------------------
     }
 

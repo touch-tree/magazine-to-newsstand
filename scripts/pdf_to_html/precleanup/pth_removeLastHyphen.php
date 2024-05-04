@@ -19,9 +19,10 @@ class pth_removeLastHyphen
 {    
 
     
-    public function __construct(&$obj)
+    public function __construct()
     {
-        digi_pdf_to_html::sortByTopThenLeftAsc($obj);
+        $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber]; 
+        digi_pdf_to_html::sortByTopThenLeftAsc();
         //-------------------------------
         $this->cleanup($obj);       
     }
@@ -29,7 +30,7 @@ class pth_removeLastHyphen
     //#####################################################################
     private function cleanup(&$obj)
     {
-        $textNodes = digi_pdf_to_html::returnProperties($obj,"tag","text");
+        $textNodes = digi_pdf_to_html::returnProperties("tag","text");
 
         foreach( $textNodes as $index => $properties) 
         {
