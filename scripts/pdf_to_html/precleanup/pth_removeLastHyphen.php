@@ -36,7 +36,7 @@ class pth_removeLastHyphen
         {
             if(sys::length($properties['content']) <= 1)                    { continue; }
             if(!sys::stringEndswith($properties['content'],"-"))            { continue; }
-            $obj['content'][$index]['content'] = rtrim($obj['content'][$index]['content'], "-"); 
+            $obj['nodes'][$index]['content'] = rtrim($obj['nodes'][$index]['content'], "-"); 
         }
     }
 

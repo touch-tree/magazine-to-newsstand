@@ -68,11 +68,11 @@ class pth_leftAlignedTexts
                     {
                         
                         $index=         $indexes[$n];
-                        $node =         $obj['content'][$index];
+                        $node =         $obj['nodes'][$index];
                         $boundary=      digi_pdf_to_html::returnBoundary([$index]);
                         
                         $index2=        $indexes[$n+1];;
-                        $node2=         $obj['content'][$index2];
+                        $node2=         $obj['nodes'][$index2];
                         $boundary2=     digi_pdf_to_html::returnBoundary([$index2]);  
                         
                         //make sure font-size is the same

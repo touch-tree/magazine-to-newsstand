@@ -43,7 +43,7 @@ class pth_floatingTexts
                         
                         //------------------------------
                         // find elements within the boundary where the following rule applies: left position > $left + margin
-                        foreach ($obj['content'] as $index => $properties) 
+                        foreach ($obj['nodes'] as $index => $properties) 
                         {
                             if(!digi_pdf_to_html::nodeWithinBoundary($properties,$objBoundary,$left))       { continue; }
                             if($properties['left'] <= ($objBoundary['left'] + $this->maxcMarginThreshold))  { continue; } 
@@ -55,7 +55,7 @@ class pth_floatingTexts
                         //get indexes and the topMax values
                         $arrayMaxTop =      [];
                         $indexesToMove =    array_keys($blocksToMove);
-                        foreach ($obj['content'] as $index => $properties) 
+                        foreach ($obj['nodes'] as $index => $properties) 
                         { 
                             if(in_array($index, $indexesToMove)){ continue; }
                             if(!digi_pdf_to_html::nodeWithinBoundary($properties,$objBoundary,$left))      { continue; }
@@ -128,7 +128,7 @@ class pth_floatingTexts
     {
         $arrayLeftCollection = [];
 
-        foreach ($obj['content'] as $index => $item) 
+        foreach ($obj['nodes'] as $index => $item) 
         {
             if($item['tag'] === "image") { continue; }
             $value = $item["left"];
@@ -166,14 +166,14 @@ class pth_floatingTexts
                 for( $n=0; $n<$len; $n++ )
                 {   
                         $index =        $indexes[$n];
-                        $properties =   $obj['content'][$index];
+                        $properties =   $obj['nodes'][$index];
                         $nextN=         $n+1;
                         array_push($arrayBlocks[$left][$setIndex],$index);
         
                         if(isset($indexes[$nextN]))
                         {
                             $indexNext=         $indexes[$nextN];
-                            $propertiesNext=    $obj['content'][$indexNext];    
+                            $propertiesNext=    $obj['nodes'][$indexNext];    
 
                             //next line spacing must be within range/allowence
                             $diff = abs(  $propertiesNext['top'] - ($properties['top'] + $properties['height']) );                           

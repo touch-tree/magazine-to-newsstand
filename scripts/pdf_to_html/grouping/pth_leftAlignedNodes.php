@@ -62,12 +62,12 @@ class pth_leftAlignedNodes
                     if(isset($indexes[$n+1]))
                     {
                         $index=         $indexes[$n];
-                        $node =         $obj['content'][$index];
+                        $node =         $obj['nodes'][$index];
                         $boundary=      digi_pdf_to_html::returnBoundary([$index]);
                         
                         
                         $index2=        $indexes[$n+1];;
-                        $node2=         $obj['content'][$index2];
+                        $node2=         $obj['nodes'][$index2];
                         $boundary2=     digi_pdf_to_html::returnBoundary([$index2]);  
                         
                         //spacing to the next line must be within range/allowence

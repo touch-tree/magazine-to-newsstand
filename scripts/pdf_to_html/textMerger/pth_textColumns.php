@@ -95,7 +95,7 @@ class pth_textColumns
                    
                     $lastIndex = end($indexes);
 
-                    if($properties['fontSize'] <> $obj['content'][$lastIndex]['fontSize']) { continue; }//fontsize does not match
+                    if($properties['fontSize'] <> $obj['nodes'][$lastIndex]['fontSize']) { continue; }//fontsize does not match
 
                     digi_pdf_to_html::mergeNodes($lastIndex,$index); 
                     $this->execute($obj);
@@ -127,11 +127,11 @@ class pth_textColumns
                     {
                         
                         $index=         $indexes[$n];
-                        $node =         $obj['content'][$index];
+                        $node =         $obj['nodes'][$index];
                         $boundary=      digi_pdf_to_html::returnBoundary([$index]);
                         
                         $index2=        $indexes[$n+1];;
-                        $node2=         $obj['content'][$index2];
+                        $node2=         $obj['nodes'][$index2];
                         $boundary2=     digi_pdf_to_html::returnBoundary([$index2]);  
                         
                         //make sure font-size is the same

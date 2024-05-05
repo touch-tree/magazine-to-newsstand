@@ -22,7 +22,7 @@ class pth_removeFooter
         $pageHeight =   $obj['meta']['pageHeight'];
         $maxTop =       $pageHeight - $this->maxBottomMargin;
         
-        foreach( $obj['content'] as $index => $properties) 
+        foreach( $obj['nodes'] as $index => $properties) 
         {
             if($properties['top'] < $maxTop )   { continue; }  
             digi_pdf_to_html::removeIndex($index);

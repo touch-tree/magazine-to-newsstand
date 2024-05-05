@@ -19,7 +19,7 @@ class pth_removeHeader
     //#####################################################################
     private function cleanup(&$obj)
     {
-        foreach( $obj['content'] as $index => $properties) 
+        foreach( $obj['nodes'] as $index => $properties) 
         {
             if($properties['top'] > $this->maxTopMargin )     { continue; }  
             digi_pdf_to_html::removeIndex($index);
