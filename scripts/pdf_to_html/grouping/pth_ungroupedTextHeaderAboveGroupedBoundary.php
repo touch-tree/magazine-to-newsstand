@@ -8,7 +8,7 @@ declare(strict_types=1);
 class pth_ungroupedTextHeaderAboveGroupedBoundary
 {    
    
-    private $marginY = 30;
+    private $marginY = 20;
     private $marginX = 10;
 
     public function __construct()
@@ -23,46 +23,33 @@ class pth_ungroupedTextHeaderAboveGroupedBoundary
 
     private function execute(&$obj)
     {
-        
-        /*
-        $keys = array_keys( $obj['nodes'] );
-        $len =  sizeof($keys);
-
-        $textNodes = digi_pdf_to_html::returnProperties("tag","text",false);
-
-        $handledGroup=[];
-        foreach ($textNodes as $index => $properties) 
+        $assignedGroups =    digi_pdf_to_html::returnAssignedGroups();
+        $len =               sizeof($assignedGroups);
+        $textNodes =        digi_pdf_to_html::returnProperties("tag","text",false);
+                
+        for($n=0;$n<$len;$n++)
         {
-           
-            $boundary1 = digi_pdf_to_html::returnBoundary([$index]);
-            $indx = array_search($index,$keys);
-            if(!isset($keys[$indx + 1])) { break; }
-
-            $index2 =       $keys[$indx + 1];
-            $propery2=      $obj['nodes'][$index2];
-
-            if($propery2['groupNumber'] == 0 )                  { continue; }
-            if(in_array($propery2['groupNumber'],$handledGroup)) { continue; }
-            $handledGroup[]=    $propery2['groupNumber'];
-            $boundary2 =        digi_pdf_to_html::returnGroupBoundary($propery2['groupNumber']);
+            $boundary = digi_pdf_to_html::returnGroupBoundary($assignedGroups[$n]);
             
-            
-            if( abs($boundary2['top'] - $boundary1['maxTop']) > $this->marginY  ) { continue; }
-            if( abs($boundary2['left'] - $boundary1['left']) > $this->marginX  ) { continue; }
-          
-            $grouped = digi_pdf_to_html::groupNodes([$index,$index2]);
-            if($grouped)
+            foreach ($textNodes as $index => $properties) 
             {
-                $this->execute($obj);  
-                return;
+                $boundary2 = digi_pdf_to_html::returnBoundary([$index]);
+
+                if( abs($boundary['top'] - $boundary2['maxTop']) > $this->marginY  ) { continue; }
+                if( abs($boundary['left'] - $boundary2['left']) > $this->marginX  )  { continue; }
+
+                //get index from any nodes from this group
+                $groupNodes = digi_pdf_to_html::returnProperties("groupNumber", $assignedGroups[$n],true);
+                $index2 = array_keys($groupNodes)[0];
+
+                $grouped = digi_pdf_to_html::groupNodes([$index,$index2]);
+                if($grouped)
+                {
+                    $this->execute($obj);  
+                    return;
+                }
             }
-
-        
-
         }
-
-        
-       */
     }
 
      //#####################################################################
