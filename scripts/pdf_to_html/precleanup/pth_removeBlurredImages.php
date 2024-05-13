@@ -1,23 +1,44 @@
 <?php
 declare(strict_types=1);
+//#####################################################################
 
-class pth_removeImageBlurred
-{
-    public function __construct(&$obj)
+
+class pth_removeBlurredImages
+{    
+
+    private  $arrayhandledImages=  [];
+
+    public function __construct()
     {
-       
-        foreach ($obj['content'] as $index => $properties) 
+        $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber]; 
+        digi_pdf_to_html::sortByTopThenLeftAsc();
+        //-------------------------------
+        $this->cleanup($obj);       
+    }
+    
+    //#####################################################################
+    private function cleanup(&$obj)
+    {
+        $imageNodes = digi_pdf_to_html::returnProperties("tag","image");
+        foreach( $imageNodes as $index => $properties) 
         {
-            if( $properties['tag'] !== "image" ) { continue; }
+            if(in_array($properties['content'],$this->arrayhandledImages))   { continue; }
+            $this->arrayhandledImages[]=$properties['content'];
+
             $img = digi_pdf_to_html::$processFolder."/".$properties['content'];
             $blur  = $this->calculateBlur($img);
-            if ($blur < 20) { unset($obj['content'][$index]); }
+            if ($blur < 20) 
+            {
+                digi_pdf_to_html::removeIndex($index);
+                $this->cleanup($obj);
+                return;
+            }
+
         }
- 
-        $obj['content'] = array_values($obj['content']); //re-index data
     }
 
-    //########################################################
+    //#####################################################################
+
     private function calculateBlur($img)
     {
 
@@ -54,10 +75,9 @@ class pth_removeImageBlurred
             return $variance;
     }
 
+    //#################################################################
 
-    //#######################################################
 
-    
 
 }
 

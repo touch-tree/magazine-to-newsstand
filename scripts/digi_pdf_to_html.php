@@ -6,31 +6,19 @@ class digi_pdf_to_html
     static public array $arrayPages =       [];
     static public array $arrayFonts =       [];
     static public ?int  $articleId =        null;
- 
     static public ?string $processFolder =  null;
+    static public ?int $pageNumber =        null;
+
     static private bool $isInitiated =      false;
     static private ?string $baseCommand =   null;
     static private string $filePrefix =     'content';
 
-    //###################################################################################
-
-	private static function init(): void
-    {
-        if (self::$isInitiated) {
-            return;
-        }
-
-        self::$isInitiated = true;
-        self::$baseCommand = dirname(__DIR__) . '/bin/pdftohtml';
-
-        // Add extra parsing folder with their own classes
-
-        $dir = __DIR__ . '/pdf_to_html/';
-
-        set_include_path(implode(PATH_SEPARATOR, [get_include_path(), $dir]));
-        spl_autoload_register();
-    }
-
+    //##################################################################################
+    //##################################################################################
+    //##################################################################################
+    //PROCESSING
+    //##################################################################################
+    //##################################################################################
     //##################################################################################
     
     public static function process(string $pdfPath, ?int $pageNumberStart = null, ?int $pageNumberFinal = null): void
@@ -74,11 +62,28 @@ class digi_pdf_to_html
 
     //##################################################################################
 
+    private static function init(): void
+    {
+            if(self::$isInitiated) { return ;}
+            self::$isInitiated=true;
+            $out = installation::popplerStatus();
+            if(!$out['success'])                    { sys::error("digi_pdf_to_html-class can not be used due to missing instgalled software on the server "); }
+            if(isset($out['baseCommand']))          { self::$baseCommand = $out['baseCommand']; }
     
+            //add extra folders with their own classes domains
+            set_include_path(implode(PATH_SEPARATOR, 
+            array(get_include_path(),
+            __DIR__."/pdf_to_html/precleanup"
+            ,__DIR__."/pdf_to_html/textMerger"
+            ,__DIR__."/pdf_to_html/grouping")));
+            spl_autoload_register();   
+    }
+
+    //##################################################################################
+
     private static function collectContent(): void
     {
         $path = files::standardizePath(self::$processFolder . '/' . self::$filePrefix . '.xml');
-
         if (!is_file($path)) {  sys::error('content - path is invalid: ' . $path); }
 
         //---------------
@@ -86,7 +91,6 @@ class digi_pdf_to_html
         $dom = new html_parser();
         $dom->setFullHtml(files::fileGetContents($path));
         
-    
         foreach ($dom->tagName('page') as $page) 
         {
             $pageNumber =       $dom->getAttribute($page, 'number');
@@ -124,7 +128,7 @@ class digi_pdf_to_html
                 if ($top < 0 || $left < 0 || $height <= 0 || $width <= 0)   { continue; }
                 if ($top >= $pageHeight || $left >= $pageWidth )            { continue; }
                 if ($left <=0  )                                            { continue; } /* likely from previous page */
-                if ($top <=0)                                               { continue; } /* likely from previous page */
+                if ($top <= 0)                                              { continue; } /* likely from previous page */
                 //---------------------
                 //parse actual content
                 $content =  null;
@@ -142,7 +146,7 @@ class digi_pdf_to_html
                     if ($dom->hasAttribute($node, 'font')) { $fontId = $dom->getAttribute($node, 'font');}
                 }
 
-                self::$arrayPages[$pageNumber]['content'][] = [
+                self::$arrayPages[$pageNumber]['nodes'][] = [
                     'tag' => $tag,
                     'top' => $top,
                     'left' => $left,
@@ -150,6 +154,8 @@ class digi_pdf_to_html
                     'width' => $width,
                     'content' => $content,
                     'fontId' => $fontId,
+                    'fontSize' => null,
+                    'fontColor' => null,
                     'groupNumber' => 0
                 ];
             }
@@ -170,206 +176,19 @@ class digi_pdf_to_html
             ];
         }
 
-        
-    }
-
-
-    //#################################################################################
-    //#################################################################################
-    //#################################################################################
-    //#################################################################################
-    //HELPER FUNCTIONS
-    //#################################################################################
-    //#################################################################################
-    //#################################################################################
-    //#################################################################################
-
-    //------------------------------------------
-    //SORTING
-    //sorts base-array self::$arrayPages[$page] by top-position (asc), and then left-position(asc).
-    //content is handled (by default) from top-left to bottom-right
-    static public function sortByTopThenLeftAsc(&$obj):void 
-    {
-        usort($obj['content'], function ($item1, $item2)  
+        //---------------------------
+        //assign font properties to main data obj
+        foreach( self::$arrayPages as $page => &$nodes) 
         {
-            if ($item1['top'] == $item2['top']) { return $item1['left'] <=> $item2['left']; }
-            return $item1['top'] <=> $item2['top'];
-        });
-    }
-
-    //-----------------------------------------
-    //GROUPING CONTENT
-    //obtain a new group-number within 1 page (self::$arrayPages[$page]). 
-    //Note that the group-number does not care about any top- or left positioning. It is simply for grouping purposes.     
-    public static function getNewGroupNumber(&$obj): int  
-    {
-        $groupNumbers = array_column($obj['content'], 'groupNumber');
-        return max($groupNumbers) + 1;
-    }
-
-    //----------------------------------------
-    //INDEX FILTERING
-    //obtain index values, with it current properties from base-array self::$arrayPages[$page]
-    //Note that the index-numbers themselves are preserved.
-    static public function filterSelectedIndexes($obj, array $arrayIndexes):array 
-    {
-        $array =    $obj['content'];    
-        $values =   [];
-            
-        foreach($arrayIndexes as $index) 
-        {
-                if(isset($array[$index])) { $values[$index] = $array[$index]; }
-        }
-        
-        return $values;
-    }
-
-    
-    //----------------------------------------
-    //SORTING
-    //sorts the base-array self::$arrayPages[$page]['content'] on a property value (asc or desc) . 
-    //Note that the index-numbers themselves are preserved.
-    static public function sortArrayByProperty(array $array, string $property, bool $asc = true):array  
-    {
-        uasort($array, function($a, $b) use ($property, $asc) 
-        {
-            return $asc ? $a[$property] - $b[$property] : $b[$property] - $a[$property];
-        });
-
-        return $array;
-    }
-
-    //----------------------------------------
-    //MERGER
-    //merges two blocks togehter (in $arrayPages[$page]['content'])
-    static public function mergeBlocks(array &$obj, int $baseIndex, int $appendIndex, bool $resetIndex = true ):void  
-    {
-     
-        $objBase =      &$obj['content'][$baseIndex];
-        $objAppend =    &$obj['content'][$appendIndex];
-
-        if($objBase['tag'] === "text" && $objAppend['tag'] === "text"  )
-        {
-            $txt1 = sys::strtoupper($objBase['content']);
-            $txt2 = $objBase['content'];
-            if($txt1 === $txt2)
+            foreach($nodes['nodes'] as $index => &$properties) 
             {
-                $objAppend['content'] = sys::strtoupper($objAppend['content']);      
+                if($properties['tag'] === "image") { continue; }
+                $fontId = $properties['fontId'];
+                $properties['fontColor'] = self::$arrayFonts[$fontId]['color'];
+                $properties['fontSize']  = self::$arrayFonts[$fontId]['size'];     
             }
         }
-
-
-        $objBase['content'] .=  $objAppend['content']; 
-        $objBase['left']     =  min([$objBase['left'],$objAppend['left']]);
-        $objBase['top']      =  min([$objBase['top'],$objAppend['top']]);
-
-        //calc new width
-        $finalLeft1 =  $objBase['left'] +  $objBase['width'];
-        $finalLeft2 =  $objAppend['left'] +  $objAppend['width'];
-        $objBase['width'] = max([$finalLeft1,$finalLeft2]) - $objBase['left'];
-
-        //calc new height
-        $finalTop1 = $objBase['top'] + $objBase['height'];
-        $finalTop2 = $objAppend['top'] + $objAppend['height'];
-        $objBase['height'] = max([$finalTop1,$finalTop2]) - $objBase['top'];
-
-        unset($obj['content'][$appendIndex]);
-
-        if($resetIndex)
-        {
-            $obj['content'] = array_values($obj['content']); //re-index data
-        }
-        
-    }
-
-    //--------------------------------------------
-    //BLOCK POSITIONING INFO
-    //extends block location info with extended info 
-    static public function blockPositioning(array &$obj, int $index):array  
-    {
-        $block = $obj['content'][$index];
-        $block['centerHorizontal'] =            round(($block['left'] +  $block['left']+$block['width']) / 2 );  
-        $block['centerVertical'] =              round(($block['top'] +  $block['top']+$block['height']) / 2 ); 
-        $block['pagePercentageStartLeft'] =     round(($block['left'] / $obj['meta']['pageWidth']) * 100,2);
-        $block['pagePercentageStartTop'] =      round(($block['top'] / $obj['meta']['pageHeight']) * 100,2);
-        $block['pagePercentageCenterLeft'] =    round(($block['pagePercentageStartLeft'] / $obj['meta']['pageWidth']) * 100,2);
-        $block['pagePercentageCenterTop'] =     round(($block['pagePercentageStartTop'] / $obj['meta']['pageHeight']) * 100,2);
-        $block['pagePercentageEndLeft'] =       round(( ($block['left'] + $block['width']) / $obj['meta']['pageWidth']) * 100,2);
-        $block['pagePercentageEndTop'] =        round(( ($block['top'] + $block['height'] ) / $obj['meta']['pageHeight']) * 100,2);
-
-        return $block;
-    }
-
-    //---------------------------------------------
-    //BOUNDARY DATA based on a range of (text-based) indexes
-    static public function getTextBoundaryBlock(array &$obj, array $indexes, bool $isTextOnly = true ):array  
-    {
-            $block=[];
-            $block['left']=     0;
-            $block['top']=      0;
-            $block['width']=    0;
-            $block['height']=   0;
-            $block['maxLeft']=  0;
-            $block['maxTop']=   0;
-        
-            $len = sizeof($indexes);
-
-
-            for($n=0;$n<$len;$n++)
-            {
-                    $index=             $indexes[$n];
-                    $properties =       $obj['content'][$index];
-                    if($isTextOnly && $properties['tag'] === "image") { continue ; }
-        
-                    if($block['left'] ==0 or $block['left'] > $obj['content'][$index]['left'] )
-                    {
-                        $block['left'] = $obj['content'][$index]['left'];
-                    }  
-
-                    if($block['top'] == 0 or $block['top'] > $obj['content'][$index]['top'] )
-                    {
-                        $block['top'] = $obj['content'][$index]['top'];
-                    } 
-
-                    $maxLeft = $obj['content'][$index]['left'] + $obj['content'][$index]['width'];
-                    if($maxLeft > $block['maxLeft'])
-                    {
-                        $block['maxLeft'] =  $maxLeft;   
-                    }
-
-                    $maxTop = $obj['content'][$index]['top'] + $obj['content'][$index]['height'];
-                    if($maxTop > $block['maxTop'])
-                    {
-                        $block['maxTop'] =  $maxTop;   
-                    }
-                    
-                    $block['width'] =  $block['maxLeft'] - $block['left'];
-                    $block['height'] = $block['maxTop'] -  $block['top'];
-
-            }
-
-            return $block;
-    }
-
-    //-----------------------------------------------
-    //FILTERED ON PROPERTY
-    //Note that the index-numbers themselves are preserved.
-    static public function  returnProperties(array $obj, string $property, $value) 
-    {
-        $result = array();
-        
-        // Filter $obj on property and value
-        foreach($obj as $key => $item) 
-        {
-            if(isset($item[$property]) && $item[$property] == $value)
-             {
-                $result[$key] = $item;
-            }
-        }
-        
-
-        
-        return $result;
+ 
     }
 
 
@@ -377,101 +196,40 @@ class digi_pdf_to_html
     //#################################################################################
     //#################################################################################
     //#################################################################################
-    //HTML OUTPUT
+    //GENERATE HTML
     //#################################################################################
     //#################################################################################
     //#################################################################################
     //#################################################################################
-    //execute logical components. Rules:
-    // 1) All done by object reference in the constructor __construct(&$obj) {}
-    // 2) when adding new functions inbetween other ones or changing order, please consult dev-team first!
-
-    private static function setRulesLogic(int $page): void
-    {
-        
-        $obj = &digi_pdf_to_html::$arrayPages[$page]; 
-        self::sortByTopThenLeftAsc($obj);
-
-
     
-        //-----------------
-        //TEXT related rules (before any merger!)
-        new pth_removeInvisibleTexts($obj);
-        new pth_removeLastHyphen($obj);
-        new pth_removeOddContent($obj);
-
-    
-        //----------------
-        //TEXT merger attempts
-        new pth_absolutePositioned($obj);
-        new pth_mergeTextFromLeftOffset($obj);
-        new pth_mergeTextFromColumns($obj);
-        new pth_mergeTextFromRightOffset($obj);
-        new pth_mergeTextBlocksFromRightOffset($obj);
-        new pth_mergeTextFromCentered($obj);
-        
-        //----------------
-        //TEXT grouping attempts
-        new pth_groupTextFromLeftOffset($obj);
-        new pth_groupTextCentered($obj);
-        new pth_groupTextIntersectWithBoundary($obj);
-        new pth_groupOrphanBlocks($obj);
-
-        
-        //-----------------
-        //Post grouping
-        new pth_mergeTextFromGroupAndFontId($obj);
-        
-        //----------------
-        //IMAGE
-        new pth_removeImageOddDimensions($obj);
-        new pth_removeImageBlurred($obj);
-        new pth_removeOverlappingImages($obj);
-        new pth_removeImageNearWhite($obj);
-        new pth_groupImages($obj);
-        
-
-        //----------------
-        //Header and Footer
-        new pth_removeHeader($obj);
-        new pth_removeFooter($obj);
-
-      
-      
-    }
-
-    //#########################################
-
-    public static function returnPageHtml(int $page): ?string
+    public static function returnHtml(int $page): ?string
     {
         if (!isset(self::$arrayPages[$page]) || sys::posInt($page) === 0) { return null; }
-        self::setRulesLogic($page);
-        return self::returnFinalHtml($page);
+        self::$pageNumber = $page;
+        self::parseContent();
+        return self::buildHtml();
     }
 
-    //#########################################
-    //the final output of a html-page
 
-    public static function returnFinalHtml(int $page): string
+    //###################################################################################
+
+    private static function buildHtml(): string
     {
-       
-        //----------------------------------------------------
-        //apply default sorting first
-        $obj = &digi_pdf_to_html::$arrayPages[$page]; //object for each page (note by reference!)
-        self::sortByTopThenLeftAsc($obj);
-    
+        $obj = &self::$arrayPages[self::$pageNumber]; 
+        self::sortByTopThenLeftAsc();
+
         //----------------------------------------------------
         //gather groupNumbers together
         $objFinal = [];
 
         $arrayHandledGroup=[];
-        foreach ($obj['content'] as $index => $properties) 
+        foreach ($obj['nodes'] as $index => $properties) 
         {
             if($properties['groupNumber'] == 0) { $objFinal[] = $properties; }
             elseif(!in_array($properties['groupNumber'], $arrayHandledGroup))
             {
                 $arrayHandledGroup[] = $properties['groupNumber'];
-                foreach ($obj['content'] as $index2 => $properties2) 
+                foreach ($obj['nodes'] as $index2 => $properties2) 
                 {
                         if($properties['groupNumber'] <> $properties2['groupNumber'] ) {continue;} 
                         $objFinal[] = $properties2;    
@@ -555,10 +313,123 @@ class digi_pdf_to_html
 
     }
 
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //HELPER FUNCTIONS
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
 
-    //##################################
+    //SORTING. Sorts date (self::$arrayPages[$page]) by top-position (asc), and then left-position(asc).
+    static public function sortByTopThenLeftAsc():void                                                                         { $obj = &self::$arrayPages[self::$pageNumber]; usort($obj['nodes'], function ($item1, $item2)  {  if ($item1['top'] == $item2['top']) { return $item1['left'] <=> $item2['left']; }  return $item1['top'] <=> $item2['top'];  }); }
+
+    //FILTER ON PROPERTY. Note that the index-numbers themselves are preserved.
+    static public function returnProperties(string $property, $value, ?bool $isGrouped=null):array                             { $obj = &self::$arrayPages[self::$pageNumber]; $result = array();  $prop = $obj['nodes']; foreach($prop as $key => $item) {  if(isset($isGrouped)) {if($isGrouped && $item['groupNumber'] == 0 ) { continue; }   if(!$isGrouped && $item['groupNumber']> 0 ) { continue; }    } if(isset($item[$property]) && $item[$property] == $value)   {    $result[$key] = $item;   } } return $result;  }
+
+    //BOUNDARY DATA. return boundary-data from one or more nodes (text or images)
+    static public function returnBoundary(array $indexes):array                                                                 {$obj = &self::$arrayPages[self::$pageNumber]; $block=[]; $block['left']= 0; $block['top']= 0; $block['width']= 0; $block['height']=  0; $block['maxLeft']= 0; $block['maxTop']= 0; $block['pagePercentageStartTop']=   0; $block['pagePercentageStartLeft']=  0; $block['pagePercentageEndTop']=     0; $block['pagePercentageEndLeft']=    0; $len = sizeof($indexes);for($n=0;$n<$len;$n++) { $index= $indexes[$n];$properties =       $obj['nodes'][$index]; if($block['left'] ==0 or $block['left'] > $obj['nodes'][$index]['left'] ) {  $block['left'] = $obj['nodes'][$index]['left']; }   if($block['top'] == 0 or $block['top'] > $obj['nodes'][$index]['top'] ){    $block['top'] = $obj['nodes'][$index]['top']; }  $maxLeft = $obj['nodes'][$index]['left'] + $obj['nodes'][$index]['width']; if($maxLeft > $block['maxLeft']) { $block['maxLeft'] =  $maxLeft;    } $maxTop = $obj['nodes'][$index]['top'] + $obj['nodes'][$index]['height']; if($maxTop > $block['maxTop']) {    $block['maxTop'] =  $maxTop;  }  $block['width'] =  $block['maxLeft'] - $block['left'];  $block['height'] = $block['maxTop'] -  $block['top']; } $block['pagePercentageStartTop'] =      round(($block['top'] / $obj['meta']['pageHeight']) * 100,2);  $block['pagePercentageStartLeft'] =     round(($block['left'] / $obj['meta']['pageWidth']) * 100,2); $block['pagePercentageEndTop'] =        round(( $block['maxTop'] / $obj['meta']['pageHeight']) * 100,2);  $block['pagePercentageEndLeft'] =       round(( $block['maxLeft'] / $obj['meta']['pageWidth']) * 100,2); return $block; }
+
+    //RE-INDEX DATA
+    static public function reIndex():void                                                                                       { $obj = &self::$arrayPages[self::$pageNumber]; $obj['nodes'] = array_values ($obj['nodes']);  }
+
+    //REMOVE INDEX. Note re-indexing also takes place
+    static public function removeIndex(int $index):void                                                                         { $obj = &self::$arrayPages[self::$pageNumber]; unset($obj['nodes'][$index]); self::reIndex();}
+
+    //WITHIN BOUNDARY
+    static public function nodeWithinBoundary(array $properties, array $objBoundary):bool                                       { $maxLeft = $properties['left'] + $properties['width'] ; $maxTop  = $properties['top'] + $properties['height'] ; if ($properties['left'] >= $objBoundary['left'] && $maxLeft <= $objBoundary['maxLeft'] && $properties['top'] >= $objBoundary['top'] && $maxTop <= $objBoundary['maxTop']) {return true;} return false;}
+
+   //OVERLAP BOUNDARY
+   static public function nodeOverlapsBoundary(array $properties, array $objBoundary):bool                                      { $left =  $properties['left'];  $top  =  $properties['top'];  $maxLeft =  $properties['left'] + $properties['width'];  $maxTop =  $properties['top'] + $properties['height'];  if ($left >  $objBoundary['maxLeft'] ||  $maxLeft < $objBoundary['left']) { return false;} if ($top >  $objBoundary['maxTop']|| $maxTop <= $objBoundary['top']) {return false;} return true; }
+
+    //MERGE NODES. Merges two blocks together (in $arrayPages[$page]['content']) and (by default) applies reIndex(). Note the base-Node will get new dimensions (top, left, height etc...) 
+    static public function mergeNodes(int $baseIndex, int $appendIndex, bool $resetIndex = true ):void                         { $obj = &self::$arrayPages[self::$pageNumber]; $objBase =  &$obj['nodes'][$baseIndex];  $objAppend =    &$obj['nodes'][$appendIndex];   if($objBase['tag'] === "text" && $objAppend['tag'] === "text"  ){ $txt1 = sys::strtoupper($objBase['content']); $txt2 = $objBase['content']; if($txt1 === $txt2 && sys::length($txt1) > 1) {  $objAppend['content'] = sys::strtoupper($objAppend['content']);   } } $objBase['content'] .=  $objAppend['content'];  $objBase['left']     =  min([$objBase['left'],$objAppend['left']]); $objBase['top']      =  min([$objBase['top'],$objAppend['top']]);  /* calc new width */ $finalLeft1 =  $objBase['left'] +  $objBase['width']; $finalLeft2 =  $objAppend['left'] +  $objAppend['width']; $objBase['width'] = max([$finalLeft1,$finalLeft2]) - $objBase['left']; /* calc new height */  $finalTop1 = $objBase['top'] + $objBase['height'];  $finalTop2 = $objAppend['top'] + $objAppend['height']; $objBase['height'] = max([$finalTop1,$finalTop2]) - $objBase['top'];  unset($obj['nodes'][$appendIndex]);  if($resetIndex) {self::reIndex();} }
+
+    //COLLECT VALUE->INDEXES as array. Note Value is used as key, but should not be used for calculations because it combines other values based on the margin, and will take the most used value as key.
+    static public function collectPropertyValues(array $nodes, string $property, int $margin):array                             { $arrayCollection = [];/* collect items first without any range */ foreach( $nodes as $index => $properties)  {  $value = $properties[$property]; if(!sys::isInt($value)) { continue; }  if(!isset($arrayCollection[$value])){ $arrayCollection[$value]=[]; }  $arrayCollection[$value][]=$index;} /*  apply margin grouping of similar key values  */ ksort($arrayCollection); $result = array();$temp =  array(); foreach ($arrayCollection as $key => $value)  { if (empty($temp))  {    $temp[$key] = $value; }  else  {  end($temp);   $last_key = key($temp);   if ($key - $last_key <= $margin) { $temp[$key] = $value;  } else { $result[] = $temp; $temp = array($key => $value);  }  } } if (!empty($temp)) { $result[] = $temp;}   $arrayCollection = $result; /*  apply merger of grouping grouping */ $arr=[];  foreach ($arrayCollection as $key => $collection)   { $arrayKeys = array_keys($collection); if(sizeof($collection)==1) {    $arr[$arrayKeys[0]] = $collection[$arrayKeys[0]];  } else{ $maxCount = 0;   $maxKey =   0;   $subArr =   [];  foreach ($collection as $key => $subArray)   {  if (count($subArray) > $maxCount)  {   $maxCount = count($subArray); $maxKey = $key;  }  $subArr = array_merge( $subArr , $subArray ); }  $arr[$maxKey] =  $subArr;  } } $arrayCollection = $arr; /* sort by top ASC, left ASC */ $obj = &self::$arrayPages[self::$pageNumber]; foreach ($arrayCollection as $value => $indexes)  { $len = sizeof($indexes); if($len<=1){continue;} $arrTop =   []; $arrLeft =  []; for($n=0;$n<$len;$n++) { $indx = $indexes[$n]; $arrTop[] =  $obj['nodes'][$indx]['top'];   $arrLeft[] = $obj['nodes'][$indx]['left']; } array_multisort($arrTop, SORT_ASC, $arrLeft, SORT_ASC, $indexes); $arrayCollection[$value] = $indexes;} ksort($arrayCollection);return $arrayCollection;  }
+    
+    //COLLECT Nodes From indexes. Note that the index-numbers themselves are preserved.
+    static public function returnNodesFromIndexes(array $indexes ):array                                                       { $obj = &self::$arrayPages[self::$pageNumber];  $out = [];$prop = $obj['nodes']; foreach($prop as $index => $properties) {  if(!in_array($index,$indexes)){continue;}  $out[$index]=$properties;} return $out;  }
+
+    //COLLECT MIN/MAX PROPERY VALUE (of $indexes). Use only for numeric values
+    static public function returnMinMaxProperyValue(string $property, array $indexes, bool $isMax=true ):int                    { $obj = &self::$arrayPages[self::$pageNumber]; $nodes = self::returnNodesFromIndexes($indexes);$out = 0;foreach($nodes as $index => $properties) {  $value = $properties[$property]; if($out == 0) { $out = $value; } if($isMax and $value > $out)    { $out = $value;} if(!$isMax and $value < $out)   { $out = $value;}} return $out;}
+
+    //RETURN NEW GROUPNUMBER
+    public static function getNewGroupNumber(): int                                                                             { $obj = &self::$arrayPages[self::$pageNumber]; $groupNumbers = array_column($obj['nodes'], 'groupNumber');return max($groupNumbers) + 1;}
+
+    //CREATE GROUPS from nodes
+    static public function groupNodes(array $indexes):bool                                                                      {$obj = &self::$arrayPages[self::$pageNumber];$nodes =   self::returnNodesFromIndexes($indexes);$groups =    self::collectPropertyValues($nodes,"groupNumber",0);$arrayGroupNumbers =    array_values(array_unique(array_keys($groups)));if(!in_array(0,$arrayGroupNumbers)) { return false; } $groupId = max($arrayGroupNumbers); if($groupId == 0) {$groupId = self::getNewGroupNumber();} foreach ($nodes as $index => $properties)  {if($properties['groupNumber'] > 0 ) {continue;} $obj['nodes'][$index]['groupNumber'] = $groupId; } return true;}
+    
+    //GET ALL ASSIGNED GROUPS
+    static public function returnAssignedGroups():array                                                                         {$obj = &self::$arrayPages[self::$pageNumber]; $groupNumbers = array_map(function($item) { return $item['groupNumber'];}, $obj['nodes']); $groupNumbers = array_filter($groupNumbers, function($number) { return $number > 0;}); $groupNumbers = array_values(array_unique($groupNumbers)); return $groupNumbers;}
+    
+    //BOUNDARY GROUP DATA. return boundary-data from a given groupnumber
+    static public function returnGroupBoundary(int $groupNumber):array                                                          {$obj = &self::$arrayPages[self::$pageNumber];  $block=[];  $block['left']= 0;  $block['top']= 0;  $block['width']= 0;  $block['height']=  0;  $block['maxLeft']= 0;  $block['maxTop']= 0;  $block['pagePercentageStartTop']=   0;  $block['pagePercentageStartLeft']=  0;  $block['pagePercentageEndTop']=     0;  $block['pagePercentageEndLeft']=    0; $nodes = self::returnProperties( "groupNumber", $groupNumber,true );foreach ($nodes as $index => $properties) { $maxLeft =  $properties['left'] +  $properties['width'];  $maxTop =   $properties['top'] +  $properties['height']; if( $block['left'] == 0) { $block['left'] = $properties['left'];} if( $block['top'] == 0) { $block['top'] = $properties['top'];} if( $block['maxLeft'] == 0) { $block['maxLeft'] = $maxLeft;} if( $block['maxTop'] == 0) { $block['maxTop'] =  $maxTop;}  if($properties['left'] < $block['left'] )   {  $block['left'] = $properties['left'];} if($properties['top'] < $block['top'] )     {  $block['top'] = $properties['top'];}  if($maxLeft> $block['maxLeft'] )     {  $block['maxLeft'] = $maxLeft;}  if($maxTop > $block['maxTop'] )     {  $block['maxTop'] = $maxTop;} } $block['width'] =   $block['maxLeft'] - $block['left']; $block['height'] =  $block['maxTop'] - $block['top']; $block['pagePercentageStartTop'] =  round(($block['top'] / $obj['meta']['pageHeight']) * 100,2);   $block['pagePercentageStartLeft'] =     round(($block['left'] / $obj['meta']['pageWidth']) * 100,2);   $block['pagePercentageEndTop'] =        round(( $block['maxTop'] / $obj['meta']['pageHeight']) * 100,2);    $block['pagePercentageEndLeft'] =       round(( $block['maxLeft'] / $obj['meta']['pageWidth']) * 100,2);   return $block; }
+    
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //CONTENT PARSING
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
    
+    private static function parseContent(): void
+    {
+        
+        
+        //----------------------------------------
+        //pre-cleaning up. Anything before any merger attempt is performed
+        new pth_removeInvisibleTexts();
+        new pth_removeStrangeTexts();
+        new pth_removeLastHyphen();
+        new pth_removeStrangeSizedImages();
+        new pth_removeBlurredImages();
+        new pth_removeNearWhiteImages();
+        new pth_removeHeader();
+        new pth_removeFooter();
+        new pth_removeOverlappingImages();
 
+        
+        //---------------------------------------
+        //text merger (preserve sequence!!!!!!!) before any grouping attempt is performed
+        new pth_floatingTexts();
+        new pth_leftAlignedTexts();
+        new pth_rightAlignedTexts(); //must come after left alignment
+        new pth_centeredTexts();
+        new pth_capitalStartLetter();
+        new pth_textColumns();
+        
 
+        //--------------------------------------
+        //grouping
+        new pth_leftAlignedNodes();
+        new pth_centeredNodes();
+        new pth_ungroupedTextWithinOtherUngroupedText();
+        new pth_ungroupedTextWithinGroupedBoundary();
+        new pth_ungroupedImageWithinGroupedBoundary();
+        new pth_ungroupedImageOverlapGroupedBoundary();
+        new pth_ungroupedTextOverlapGroupedBoundary();
+        new pth_ungroupedTextHeaderAboveGroupedBoundary();
+
+        
+        //code Josh here....
+        
+
+    }
+
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //END
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
+    //#################################################################################
 
 }
