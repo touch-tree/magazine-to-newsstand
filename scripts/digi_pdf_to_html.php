@@ -362,7 +362,7 @@ class digi_pdf_to_html
     //CREATE GROUPS from nodes
     static public function groupNodes(array $indexes):bool                                                                      {$obj = &self::$arrayPages[self::$pageNumber];$nodes =   self::returnNodesFromIndexes($indexes);$groups =    self::collectPropertyValues($nodes,"groupNumber",0);$arrayGroupNumbers =    array_values(array_unique(array_keys($groups)));if(!in_array(0,$arrayGroupNumbers)) { return false; } $groupId = max($arrayGroupNumbers); if($groupId == 0) {$groupId = self::getNewGroupNumber();} foreach ($nodes as $index => $properties)  {if($properties['groupNumber'] > 0 ) {continue;} $obj['nodes'][$index]['groupNumber'] = $groupId; } return true;}
     
-    //GET ALL ASSIGNED GROUPS
+    //GET ALL ASSIGNED GROUPS-NUMBERS
     static public function returnAssignedGroups():array                                                                         {$obj = &self::$arrayPages[self::$pageNumber]; $groupNumbers = array_map(function($item) { return $item['groupNumber'];}, $obj['nodes']); $groupNumbers = array_filter($groupNumbers, function($number) { return $number > 0;}); $groupNumbers = array_values(array_unique($groupNumbers)); return $groupNumbers;}
     
     //BOUNDARY GROUP DATA. return boundary-data from a given groupnumber
@@ -403,8 +403,10 @@ class digi_pdf_to_html
         new pth_centeredTexts();
         new pth_capitalStartLetter();
         new pth_textColumns();
-        
 
+        //code Josh here ? ....
+
+    
         //--------------------------------------
         //grouping
         new pth_leftAlignedNodes();
@@ -412,14 +414,14 @@ class digi_pdf_to_html
         new pth_ungroupedTextWithinOtherUngroupedText();
         new pth_ungroupedTextWithinGroupedBoundary();
         new pth_ungroupedImageWithinGroupedBoundary();
-        new pth_ungroupedImageOverlapGroupedBoundary();
         new pth_ungroupedTextOverlapGroupedBoundary();
         new pth_ungroupedTextHeaderAboveGroupedBoundary();
-
+        new pth_ungroupedTextFooterBelowGroupedBoundary();
+        new pth_ungroupedImageBelowGroupedBoundary();
+        new pth_ungroupedImageAboveGroupedBoundary();
+        new pth_ungroupedImageLeftFromGroupedBoundary();
+        new pth_ungroupedImageOverlapGroupedBoundary();
         
-        //code Josh here....
-        
-
     }
 
     //#################################################################################
