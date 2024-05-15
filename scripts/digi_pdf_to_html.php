@@ -13,6 +13,8 @@ class digi_pdf_to_html
     static private ?string $baseCommand =   null;
     static private string $filePrefix =     'content';
 
+
+
     //##################################################################################
     //##################################################################################
     //##################################################################################
@@ -75,7 +77,9 @@ class digi_pdf_to_html
             array(get_include_path(),
             __DIR__."/pdf_to_html/precleanup"
             ,__DIR__."/pdf_to_html/textMerger"
-            ,__DIR__."/pdf_to_html/grouping")));
+            ,__DIR__."/pdf_to_html/grouping"
+            ,__DIR__."/pdf_to_html/postgrouping"
+            )));
             spl_autoload_register();   
     }
 
@@ -103,7 +107,7 @@ class digi_pdf_to_html
                     'pageWidth' =>  sys::posInt($dom->getAttribute($page, 'width')),
                     'pageHeight' => sys::posInt($dom->getAttribute($page, 'height'))
                 ],
-                'content' => []
+                'nodes' => []
             ];
 
             foreach ($dom->tagName('*', $page) as $node) 
@@ -156,7 +160,8 @@ class digi_pdf_to_html
                     'fontId' => $fontId,
                     'fontSize' => null,
                     'fontColor' => null,
-                    'groupNumber' => 0
+                    'groupNumber' => 0,
+                    'groupSequenceNumber' => 0
                 ];
             }
         }
@@ -187,8 +192,7 @@ class digi_pdf_to_html
                 $properties['fontColor'] = self::$arrayFonts[$fontId]['color'];
                 $properties['fontSize']  = self::$arrayFonts[$fontId]['size'];     
             }
-        }
- 
+        } 
     }
 
 
@@ -324,7 +328,7 @@ class digi_pdf_to_html
     //#################################################################################
 
     //SORTING. Sorts date (self::$arrayPages[$page]) by top-position (asc), and then left-position(asc).
-    static public function sortByTopThenLeftAsc():void                                                                         { $obj = &self::$arrayPages[self::$pageNumber]; usort($obj['nodes'], function ($item1, $item2)  {  if ($item1['top'] == $item2['top']) { return $item1['left'] <=> $item2['left']; }  return $item1['top'] <=> $item2['top'];  }); }
+    static public function sortByTopThenLeftAsc():void                                                                          { $obj = &self::$arrayPages[self::$pageNumber]; usort($obj['nodes'], function ($item1, $item2)  {  if ($item1['top'] == $item2['top']) { return $item1['left'] <=> $item2['left']; }  return $item1['top'] <=> $item2['top'];  }); }
 
     //FILTER ON PROPERTY. Note that the index-numbers themselves are preserved.
     static public function returnProperties(string $property, $value, ?bool $isGrouped=null):array                             { $obj = &self::$arrayPages[self::$pageNumber]; $result = array();  $prop = $obj['nodes']; foreach($prop as $key => $item) {  if(isset($isGrouped)) {if($isGrouped && $item['groupNumber'] == 0 ) { continue; }   if(!$isGrouped && $item['groupNumber']> 0 ) { continue; }    } if(isset($item[$property]) && $item[$property] == $value)   {    $result[$key] = $item;   } } return $result;  }
@@ -345,7 +349,7 @@ class digi_pdf_to_html
    static public function nodeOverlapsBoundary(array $properties, array $objBoundary):bool                                      { $left =  $properties['left'];  $top  =  $properties['top'];  $maxLeft =  $properties['left'] + $properties['width'];  $maxTop =  $properties['top'] + $properties['height'];  if ($left >  $objBoundary['maxLeft'] ||  $maxLeft < $objBoundary['left']) { return false;} if ($top >  $objBoundary['maxTop']|| $maxTop <= $objBoundary['top']) {return false;} return true; }
 
     //MERGE NODES. Merges two blocks together (in $arrayPages[$page]['content']) and (by default) applies reIndex(). Note the base-Node will get new dimensions (top, left, height etc...) 
-    static public function mergeNodes(int $baseIndex, int $appendIndex, bool $resetIndex = true ):void                         { $obj = &self::$arrayPages[self::$pageNumber]; $objBase =  &$obj['nodes'][$baseIndex];  $objAppend =    &$obj['nodes'][$appendIndex];   if($objBase['tag'] === "text" && $objAppend['tag'] === "text"  ){ $txt1 = sys::strtoupper($objBase['content']); $txt2 = $objBase['content']; if($txt1 === $txt2 && sys::length($txt1) > 1) {  $objAppend['content'] = sys::strtoupper($objAppend['content']);   } } $objBase['content'] .=  $objAppend['content'];  $objBase['left']     =  min([$objBase['left'],$objAppend['left']]); $objBase['top']      =  min([$objBase['top'],$objAppend['top']]);  /* calc new width */ $finalLeft1 =  $objBase['left'] +  $objBase['width']; $finalLeft2 =  $objAppend['left'] +  $objAppend['width']; $objBase['width'] = max([$finalLeft1,$finalLeft2]) - $objBase['left']; /* calc new height */  $finalTop1 = $objBase['top'] + $objBase['height'];  $finalTop2 = $objAppend['top'] + $objAppend['height']; $objBase['height'] = max([$finalTop1,$finalTop2]) - $objBase['top'];  unset($obj['nodes'][$appendIndex]);  if($resetIndex) {self::reIndex();} }
+    static public function mergeNodes(int $baseIndex, int $appendIndex, bool $resetIndex = true ):void                          {  $obj = &self::$arrayPages[self::$pageNumber]; $objBase =  &$obj['nodes'][$baseIndex];  $objAppend =    &$obj['nodes'][$appendIndex];   if($objBase['tag'] === "text" && $objAppend['tag'] === "text"  ){  $txt1 = sys::strtoupper($objBase['content']); $txt2 = $objBase['content'];   if($txt1 === $txt2 && sys::length($txt1) > 1) {  $objAppend['content'] = sys::strtoupper($objAppend['content']);   } }  $objBase['content'] .=  $objAppend['content'];    $minLeft =  min([$objBase['left'],$objAppend['left']]);   $minTop  =  min([$objBase['top'],$objAppend['top']]);   /* calc new width */   $finalLeft1 =  $objBase['left'] +  $objBase['width'];  $finalLeft2 =  $objAppend['left'] +  $objAppend['width']; $maxLeft =     max([$finalLeft1,$finalLeft2]); /* calc new height */   $finalTop1 = $objBase['top'] + $objBase['height'];   $finalTop2 = $objAppend['top'] + $objAppend['height'];  $maxTop =     max([$finalTop1,$finalTop2]); $objBase['height'] =   $maxTop - $minTop;   $objBase['left']     =  $minLeft;   $objBase['top']      =  $minTop;    $objBase['width'] = $maxLeft - $minLeft;  unset($obj['nodes'][$appendIndex]);  if($resetIndex) {self::reIndex();}  }
 
     //COLLECT VALUE->INDEXES as array. Note Value is used as key, but should not be used for calculations because it combines other values based on the margin, and will take the most used value as key.
     static public function collectPropertyValues(array $nodes, string $property, int $margin):array                             { $arrayCollection = [];/* collect items first without any range */ foreach( $nodes as $index => $properties)  {  $value = $properties[$property]; if(!sys::isInt($value)) { continue; }  if(!isset($arrayCollection[$value])){ $arrayCollection[$value]=[]; }  $arrayCollection[$value][]=$index;} /*  apply margin grouping of similar key values  */ ksort($arrayCollection); $result = array();$temp =  array(); foreach ($arrayCollection as $key => $value)  { if (empty($temp))  {    $temp[$key] = $value; }  else  {  end($temp);   $last_key = key($temp);   if ($key - $last_key <= $margin) { $temp[$key] = $value;  } else { $result[] = $temp; $temp = array($key => $value);  }  } } if (!empty($temp)) { $result[] = $temp;}   $arrayCollection = $result; /*  apply merger of grouping grouping */ $arr=[];  foreach ($arrayCollection as $key => $collection)   { $arrayKeys = array_keys($collection); if(sizeof($collection)==1) {    $arr[$arrayKeys[0]] = $collection[$arrayKeys[0]];  } else{ $maxCount = 0;   $maxKey =   0;   $subArr =   [];  foreach ($collection as $key => $subArray)   {  if (count($subArray) > $maxCount)  {   $maxCount = count($subArray); $maxKey = $key;  }  $subArr = array_merge( $subArr , $subArray ); }  $arr[$maxKey] =  $subArr;  } } $arrayCollection = $arr; /* sort by top ASC, left ASC */ $obj = &self::$arrayPages[self::$pageNumber]; foreach ($arrayCollection as $value => $indexes)  { $len = sizeof($indexes); if($len<=1){continue;} $arrTop =   []; $arrLeft =  []; for($n=0;$n<$len;$n++) { $indx = $indexes[$n]; $arrTop[] =  $obj['nodes'][$indx]['top'];   $arrLeft[] = $obj['nodes'][$indx]['left']; } array_multisort($arrTop, SORT_ASC, $arrLeft, SORT_ASC, $indexes); $arrayCollection[$value] = $indexes;} ksort($arrayCollection);return $arrayCollection;  }
@@ -394,7 +398,7 @@ class digi_pdf_to_html
         new pth_removeFooter();
         new pth_removeOverlappingImages();
 
-        
+       
         //---------------------------------------
         //text merger (preserve sequence!!!!!!!) before any grouping attempt is performed
         new pth_floatingTexts();
@@ -404,11 +408,14 @@ class digi_pdf_to_html
         new pth_capitalStartLetter();
         new pth_textColumns();
 
+       
+
         //code Josh here ? ....
 
-    
+      
+
         //--------------------------------------
-        //grouping
+        //grouping (assigning ungrouped items into groups)
         new pth_leftAlignedNodes();
         new pth_centeredNodes();
         new pth_ungroupedTextWithinOtherUngroupedText();
@@ -421,6 +428,11 @@ class digi_pdf_to_html
         new pth_ungroupedImageAboveGroupedBoundary();
         new pth_ungroupedImageLeftFromGroupedBoundary();
         new pth_ungroupedImageOverlapGroupedBoundary();
+
+       
+        //-------------------------------------
+        //post grouping (re-aranging items within groups)
+        new pth_groupedTextsToSequence();
         
     }
 
