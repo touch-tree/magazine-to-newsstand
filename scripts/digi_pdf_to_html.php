@@ -221,51 +221,72 @@ class digi_pdf_to_html
     {
         $obj = &self::$arrayPages[self::$pageNumber]; 
         self::sortByTopThenLeftAsc();
-
+    
         //----------------------------------------------------
         //gather groupNumbers together
+       
         $objFinal = [];
 
         $arrayHandledGroup=[];
         foreach ($obj['nodes'] as $index => $properties) 
         {
-            if($properties['groupNumber'] == 0) { $objFinal[] = $properties; }
+            if($properties['groupNumber'] == 0) { $objFinal[$index] = $properties; }
             elseif(!in_array($properties['groupNumber'], $arrayHandledGroup))
             {
                 $arrayHandledGroup[] = $properties['groupNumber'];
-                foreach ($obj['nodes'] as $index2 => $properties2) 
+
+                //sort groupnumber by groupSequenceNumber asc (preserve original key-value)
+                $groupNodes = self::returnProperties("groupNumber",$properties['groupNumber']);
+                uasort($groupNodes, function($a, $b) { return $a['groupSequenceNumber'] <=> $b['groupSequenceNumber'];});
+
+                foreach ($groupNodes as $index2 => $properties2) 
                 {
-                        if($properties['groupNumber'] <> $properties2['groupNumber'] ) {continue;} 
-                        $objFinal[] = $properties2;    
+                        $objFinal[$index2] = $properties2;    
                 }
             }
         }
-
+        
         //----------------------------------------------------
         //Build DOM
         $dom =  new html_parser();
-        $dom->setFullHtml("<html><body></body></html>");
+        $dom->setFullHtml("<html><head></head><body></body></html>");
         $body = $dom->tagName("body")[0];
 
+        $style =     $dom->createElem("style");
+        $dom->appendLast($body,$style);
+        $style->textContent="
+        [data-groupnumber]      {border:2px solid orange;margin-top:15px;margin-bottom:15px;}
+        .divText                {padding:10px; border:1px dashed #777777; margin: 10px;}
+        .divImage               {text-align:center;}
+        .divImage img           {max-width:100%;
+        ";
 
         //output html
         $arrayHandledGroup=[];
-        foreach ($objFinal as $item) 
+        foreach ($objFinal as $index => $item) 
         {
+ 
             $divGroup =     $dom->createElem("div");
             $divBlock =     $dom->createElem("div");
             
             if($item['groupNumber'] > 0)
             {
-                    $idName = "div_group_".$item['groupNumber'];
+                    $idName = "divGroup".$item['groupNumber'];
                     if(!in_array($item['groupNumber'],$arrayHandledGroup) )
                     {
                         $arrayHandledGroup[]=$item['groupNumber'];
                         $dom->setAttribute($divGroup,"id",$idName);
-                        $dom->setCssProperty($divGroup,"border","2px solid orange"); 
-                        $dom->setCssProperty($divGroup,"margin-top","15px"); 
-                        $dom->setCssProperty($divGroup,"margin-bottom","15px"); 
+                        $dom->setAttribute($divGroup,"data-groupnumber",$item['groupNumber']); 
                         $dom->appendLast($body,$divGroup);
+
+                        $boundary = self::returnGroupBoundary($item['groupNumber']);
+                        $dom->setAttribute($divGroup,"data-left",$boundary['left']); 
+                        $dom->setAttribute($divGroup,"data-top",$boundary['top']); 
+                        $dom->setAttribute($divGroup,"data-width",$boundary['width']); 
+                        $dom->setAttribute($divGroup,"data-height",$boundary['height']); 
+                        $dom->setAttribute($divGroup,"data-right",$boundary['maxLeft']); 
+                        $dom->setAttribute($divGroup,"data-bottom",$boundary['maxTop']); 
+                        
                     }
                     else
                     {
@@ -273,13 +294,23 @@ class digi_pdf_to_html
                     }
 
                     $dom->appendLast($divGroup,$divBlock);
+                    $dom->setAttribute($divBlock,"data-groupsequence",$item['groupSequenceNumber']); 
             }
             else
             {
                 $dom->appendLast($body,$divBlock);      
             }
 
+        
+            $boundary = self::returnBoundary([$index]);
+            $dom->setAttribute($divBlock,"data-left",$boundary['left']); 
+            $dom->setAttribute($divBlock,"data-top",$boundary['top']); 
+            $dom->setAttribute($divBlock,"data-width",$boundary['width']); 
+            $dom->setAttribute($divBlock,"data-height",$boundary['height']); 
+            $dom->setAttribute($divBlock,"data-right",$boundary['maxLeft']); 
+            $dom->setAttribute($divBlock,"data-bottom",$boundary['maxTop']); 
             
+        
             if ($item['tag'] === 'text') 
             {
               
@@ -290,9 +321,7 @@ class digi_pdf_to_html
                     $dom->setCssProperty($divBlock,"font-size",$arr['size']."px");
                 }
 
-                $dom->setCssProperty($divBlock,"padding","10px");
-                $dom->setCssProperty($divBlock,"border","1px dashed #777777");
-                $dom->setCssProperty($divBlock,"margin","10px");
+                $dom->setAttribute($divBlock,"class","divText"); 
                 $dom->setInnerHTML($divBlock,$item['content']);	
             } 
             else 
@@ -307,8 +336,7 @@ class digi_pdf_to_html
                 $dom->setAttribute($img,"src",$src);
                 $dom->setAttribute($img,"data-basename",basename($imgPath));
                 $dom->appendLast($divBlock,$img);
-                $dom->setCssProperty($divBlock,"text-align","center");
-                $dom->setCssProperty($img,"max-width","100%");
+                $dom->setAttribute($divBlock,"class","divImage"); 
 
             } 
         }
@@ -432,6 +460,7 @@ class digi_pdf_to_html
        
         //-------------------------------------
         //post grouping (re-aranging items within groups)
+        new pth_groupedSetDefaultSequence();
         new pth_groupedTextsToSequence();
         
     }

@@ -4,13 +4,14 @@ declare(strict_types=1);
 /*
     - groups nodes into a natural format
     - creates values for groupSequenceNumber property
-    - sorts group-nodes by left ASC, then maxTop ASC
+    - find title but only for left-aligned text-nodes
+    - sort by maxTop ASC
 */
 
 class pth_groupedTextsToSequence
 {    
    
-    private $leftLevel = 20;
+    private $leftLevel = 10;
 
     public function __construct()
     {
@@ -27,7 +28,27 @@ class pth_groupedTextsToSequence
         
         $assignedGroups =    digi_pdf_to_html::returnAssignedGroups();
         $len =               sizeof($assignedGroups);
-                
+        for($n=0;$n<$len;$n++)
+        {
+            $groupId =              $assignedGroups[$n];
+            $nodes   =              digi_pdf_to_html::returnProperties("groupNumber",$groupId);
+            $leftNodesWithIndexes = digi_pdf_to_html::collectPropertyValues($nodes,"left",$this->leftLevel);
+
+            foreach($leftNodesWithIndexes as $left => $indexes) 
+            { 
+                if(sizeof($indexes) <= 1) { continue; } 
+            }
+
+          
+            
+        }
+        
+
+
+
+
+
+        /*     
         for($n=0;$n<$len;$n++)
         {
             $groupBoundary =    digi_pdf_to_html::returnGroupBoundary($assignedGroups[$n]);
@@ -36,10 +57,11 @@ class pth_groupedTextsToSequence
             { 
                 $boundary =  digi_pdf_to_html::returnBoundary([$index]);
                 $nodes[$index]['maxTop']=$boundary['maxTop'];
+                $nodes[$index]['center']= round( ($boundary['left'] + $boundary['maxLeft']) / 2 );
             }
             
             //groupSequenceNumber
-            uasort($nodes, function ($item1, $item2)  {  if ($item1['left'] == $item2['left']) { return $item1['maxTop'] <=> $item2['maxTop']; }  return $item1['left'] <=> $item2['left'];  });
+            uasort($nodes, function ($item1, $item2)  {  if ($item1['center'] == $item2['center']) { return $item1['maxTop'] <=> $item2['maxTop']; }  return $item1['center'] <=> $item2['center'];  });
 
             $groupSequenceNumber = 0;
 
@@ -51,6 +73,9 @@ class pth_groupedTextsToSequence
             }
 
         }
+        */
+
+        //print_r($obj);exit;
 
     }
 

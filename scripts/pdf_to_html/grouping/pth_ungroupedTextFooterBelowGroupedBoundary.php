@@ -42,6 +42,7 @@ class pth_ungroupedTextFooterBelowGroupedBoundary
                 $groupNodes = digi_pdf_to_html::returnProperties("groupNumber", $assignedGroups[$n],true);
                 $index2 = array_keys($groupNodes)[0];
 
+        
                 $grouped = digi_pdf_to_html::groupNodes([$index,$index2]);
                 if($grouped)
                 {
