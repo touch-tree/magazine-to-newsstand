@@ -36,7 +36,7 @@ class pth_leftAlignedTexts
 {    
     private $margin = 3;
     private $maxTextYSeparator =   8;
-    private $arrayLeftCollection = [];
+
     
     public function __construct()
     {
@@ -51,18 +51,18 @@ class pth_leftAlignedTexts
 
     private function execute(&$obj)
     {
-        $textNodes =                    digi_pdf_to_html::returnProperties("tag","text",false);    
-        $this->arrayLeftCollection =    digi_pdf_to_html::collectPropertyValues($textNodes,"left",$this->margin);
+        $textNodes =              digi_pdf_to_html::returnProperties("tag","text",false);    
+        $arrayLeftCollection =    digi_pdf_to_html::collectPropertyValues($textNodes,"left",$this->margin);
 
-        foreach ($this->arrayLeftCollection as $leftVal => $indexes) 
+
+
+        foreach ($arrayLeftCollection as $leftVal => $indexes) 
         {
                 $len = sizeof($indexes);
                 if( $len <= 1 ) { continue; }
 
                 for( $n=0; $n < $len; $n++ )
                 {
-
-
 
                     if(isset($indexes[$n+1]))
                     {
@@ -74,11 +74,26 @@ class pth_leftAlignedTexts
                         $index2=        $indexes[$n+1];;
                         $node2=         $obj['nodes'][$index2];
                         $boundary2=     digi_pdf_to_html::returnBoundary([$index2]);  
-                        
-                        //make sure font-size is the same
-                        if( $node['fontSize'] <> $node2['fontSize'] ) { continue; }
 
-                         //spacing to the next line must be within range/allowence
+                        
+
+
+                        //substitute a new-line for a white-space
+                        if( $boundary2['top'] > $boundary['top']  &&  ($boundary2['top'] - $boundary['maxTop'] ) <= $this->maxTextYSeparator) 
+                        {
+                            $lastChar = sys::substr(strip_tags($node['content']), -1);  
+                            $newChar  = sys::substr(strip_tags($node2['content']),0,1); 
+                            if(sys::isAlpha($lastChar) && sys::isAlpha($newChar))
+                            {
+                                $node2['content'] = " ".$node2['content'];
+                                $obj['nodes'][$index2]['content'] = $node2['content']; 
+                            } 
+                        }
+
+
+                        if(!digi_pdf_to_html::textNodesAreMergable($node,$node2) )              { continue ; }
+
+                        //spacing to the next line must be within range/allowence
                         if( ($boundary2['top'] - $boundary['maxTop'] ) > $this->maxTextYSeparator) {continue; }
 
                         digi_pdf_to_html::mergeNodes($index,$index2); 

@@ -75,8 +75,8 @@ class pth_rightAlignedTexts
                         $boundary2=     digi_pdf_to_html::returnBoundary([$index2]);  
                         
                         //make sure font-size is the same
-                        if( $node['fontSize'] <> $node2['fontSize'] ) { continue; }
-
+                        if(!digi_pdf_to_html::textNodesAreMergable($node,$node2) ) { continue ; }
+                 
                          //spacing to the next line must be within range/allowence
                         if( abs($boundary2['top'] - $boundary['maxTop'] ) > $this->maxTextYSeparator) {continue; }
 

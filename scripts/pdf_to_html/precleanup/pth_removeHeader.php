@@ -21,7 +21,8 @@ class pth_removeHeader
     {
         foreach( $obj['nodes'] as $index => $properties) 
         {
-            if($properties['top'] > $this->maxTopMargin )     { continue; }  
+            $boundary = digi_pdf_to_html::returnBoundary([$index]);
+            if($boundary['maxTop'] > $this->maxTopMargin ) { continue; }  
             digi_pdf_to_html::removeIndex($index);
             $this->cleanup($obj);
             return;
