@@ -23,7 +23,9 @@ class pth_relocateSingleCharacters
     private function execute(&$obj)
     {
         $textNodes =        digi_pdf_to_html::returnProperties("tag","text");
-        $objLangauge =      new language();  
+        $objLangauge =      new language(); 
+        
+        
         
         foreach ($textNodes as $index => $properties) 
         {
@@ -32,6 +34,8 @@ class pth_relocateSingleCharacters
           
             $languageCode =     $objLangauge->returnDetectedLanguage($text);  
             $obj['nodes'][$index]['content'] = $this->appendCharsToPrevWord($text,$languageCode);
+
+
         }
     }
 
@@ -41,6 +45,7 @@ class pth_relocateSingleCharacters
         $arrayChars = [];
         if($languageCode === "nl") { $arrayChars=["b","c","d","e","f","g","h","i","j","k","l","m","n","p","q","r","w","x","z"]; }
         if($languageCode === "en") { $arrayChars=["b","c","d","e","f","g","h","j","k","l","m","n","p","q","r","w","x","z"]; }
+        if($languageCode === "fr") { $arrayChars=["b","c","d","e","f","g","h","j","k","l","m","n","p","q","r","w","x","z"]; }
 
         $words = explode(' ', $str);
         $len = sizeof($words);

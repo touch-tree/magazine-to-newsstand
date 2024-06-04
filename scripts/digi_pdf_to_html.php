@@ -135,13 +135,8 @@ class digi_pdf_to_html
                 //elements out of visual range
                 if ($top < 0 || $left < 0 || $height <= 0 || $width <= 0)   { continue; }
                 if ($top >= $pageHeight || $left >= $pageWidth )            { continue; }
-
-                if($tag === "text")
-                {
-                    if ($left <=0  )                                         { continue; } /* likely from previous page */
-                    if ($top <= 0  )                                         { continue; } /* likely from previous page */
-                }
-
+                if ($left <=0  )                                            { continue; } /* likely from previous page */
+                if ($top <= 0)                                              { continue; } /* likely from previous page */
                 //---------------------
                 //parse actual content
                 $content =  null;
@@ -226,7 +221,7 @@ class digi_pdf_to_html
 
     //###################################################################################
 
-    private static function buildHtml(): string
+    private static function buildHtml(): ?string
     {
         $obj = &self::$arrayPages[self::$pageNumber]; 
         self::sortByTopThenLeftAsc();
@@ -267,16 +262,6 @@ class digi_pdf_to_html
         $dom->setAttribute($divMain,"data-pageheight",self::$arrayPages[self::$pageNumber]['meta']['pageHeight']);
 
         $dom->appendLast($body,$divMain);
-
-        $style =     $dom->createElem("style");
-        $dom->appendLast($divMain,$style);
-        $style->textContent="
-        [data-groupnumber]      {border:2px solid orange;margin-top:15px;margin-bottom:15px;}
-        .divText                {padding:10px; border:1px dashed #777777; margin: 10px;}
-        .divImage               {text-align:center;}
-        .divImage img           {max-width:100%;
-        ";
-
         
         //output html
         $arrayHandledGroup=[];
@@ -358,9 +343,44 @@ class digi_pdf_to_html
             } 
         }
 
+        if(!self::isUsableHtml($dom)) { return null; }
         return $dom->innerHTML($body);
 
     }
+
+    //#################################################################################
+
+    public static function isUsableHtml($dom):bool
+    { 
+        $body =     $dom->tagName("body")[0];
+        
+
+        //----------------------------------------
+        //check length
+        $content =  $body->textContent;
+        if(strlen($content) < 200) { return false; }
+
+        //-----------------------------------------
+        //check for availability of normal font size
+        $hasNormalFontSize=false;
+        $nodes =     $dom->tagName("*");
+        $len =       $nodes->length;
+        for($n=0;$n<$len;$n++)
+        {
+            if( $dom->hasInitialproperty($nodes[$n],"font-size")) 
+            {
+                $fontSize = sys::extractInt($dom->returnInitialproperty($nodes[$n],"font-size"));
+                if($fontSize < 25 ){ $hasNormalFontSize=true; break;}
+            }
+        }
+        if(!$hasNormalFontSize) { return false; }
+ 
+
+        return true;
+
+
+    }
+
 
     //#################################################################################
     //#################################################################################
@@ -421,10 +441,10 @@ class digi_pdf_to_html
     static public function returnGroupIndexes(int $groupNumber):array                                                           { $obj = &self::$arrayPages[self::$pageNumber]; $nodes =  self::returnProperties("groupNumber",$groupNumber,true); return array_keys($nodes); }
   
     //TEXT IN UPPERCASE
-    static public function isUpperCased($str):bool                                                                               {$txt = sys::strtoupper($str); if($txt === $str) { return true;} return false;}
+    static public function isUpperCased($str):bool                                                                              { $str = sys::html_entity_decode($str); $txt = sys::strtoupper($str); if($txt === $str) { return true;} return false;}
 
     //DETERMINE IF TEXTNODES ARE ALLOWED TO BE MERGED
-    static public function textNodesAreMergable($node1 , $node2):bool                                                            {if($node1['tag'] !== "text" || $node2['tag'] !== "text" )   { return false; } if($node1['fontSize'] <> $node2['fontSize'] ){ return false; }   /* text-tyles do not match */ if(sys::length($node1['content'])>10 && sys::length($node2['content'])>10)  { if(self::isUpperCased($node1['content']) != self::isUpperCased($node2['content'])) { return false; } }   if(sys::length($node1['content'])>8 && sys::length($node2['content'])>8 && $node1['fontId'] <> $node2['fontId'] )   { if(self::isUpperCased($node1['content']) != self::isUpperCased($node2['content'])) { return false;  }   }    /* check if texts flows correctly */  $lastChar = sys::substr(strip_tags($node1['content']), -1);  $newChar  = sys::substr(strip_tags($node2['content']),0,1); if(sys::isAlpha($lastChar) && sys::isAlpha($newChar)) { if(digi_pdf_to_html::isUpperCased($lastChar) != digi_pdf_to_html::isUpperCased($newChar) ) { return false;  }   if(self::hasClosingHtmlTag($node1['content']))                                             { return false;  } }  return true;   }
+    static public function textNodesAreMergable($node1 , $node2):bool                                                            {if($node1['tag'] !== "text" || $node2['tag'] !== "text" )   { return false; }  if($node1['fontSize'] <> $node2['fontSize'] ){ return false; }   /* text-tyles do not match */ if(sys::length($node1['content'])>10 && sys::length($node2['content'])>10)  { if(self::isUpperCased($node1['content']) != self::isUpperCased($node2['content'])) { return false; } } if(sys::length($node1['content'])>8 && sys::length($node2['content'])>8 && $node1['fontId'] <> $node2['fontId'] )    {  if(self::isUpperCased($node1['content']) != self::isUpperCased($node2['content'])) { return false;  }   }    /* check if texts flows correctly */   $lastChar = sys::substr(strip_tags($node1['content']), -1);  $newChar  = sys::substr(strip_tags($node2['content']),0,1); if(sys::isAlpha($lastChar) && sys::isAlpha($newChar)) { if(digi_pdf_to_html::isUpperCased($lastChar) != digi_pdf_to_html::isUpperCased($newChar) ) { return false;  }   if(self::hasClosingHtmlTag($node1['content']))                                             { return false;  } }  return true;   }
    
     //SORT ON PROPERTY Note that the index-numbers themselves are preserved.
     static public function sortNodesByProperty(array $nodes, string $property, bool $isAsc=true):array                           {if($isAsc){  uasort($nodes, function($a, $b) use ($property)  { return $a[$property] <=> $b[$property];});} else {    uasort($nodes, function($a, $b) use ($property) { return $b[$property] <=> $a[$property];}); }  return $nodes;}
@@ -473,8 +493,6 @@ class digi_pdf_to_html
         new pth_textColumnsPostBlockWithImage();
         new pth_textColumnsPreBlockWithTitle(); 
         new pth_textColumnsPreBlockWithImage();
-        
-
         new pth_multiLineHeaders();
         
         //--------------------------------------

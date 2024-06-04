@@ -43,9 +43,11 @@ class pth_textColumns
     private function execute(&$obj):void
     {
         $textNodes =  digi_pdf_to_html::returnProperties("tag","text",false); 
-        $objTree = $this->gatherVerticalTree($textNodes);
+
+        $objTree = $this->gatherVerticalTree($textNodes);    
         $objTree = $this->gatherHorizontalTree($objTree);
 
+    
         foreach ($objTree as $groupIndex => $blocks) 
         {
             
@@ -56,6 +58,9 @@ class pth_textColumns
             
                 $lastIndex =        end($indexes); 
                 $nextIndex =        reset($blocks[$n+1]);
+
+
+                
              
                 //check if there is another node embedded within a larger one (e.g. due to earlier merger); if so the lowest/rightmost one applies
                 $boundary =  digi_pdf_to_html::returnBoundary([$lastIndex]); 
@@ -67,12 +72,16 @@ class pth_textColumns
                     if($embeddedBoundary['left'] >= $boundary['maxLeft'])   { continue; }
 
                     if(digi_pdf_to_html::nodeOverlapsBoundary($embeddedBoundary,$boundary))
-                    {
+                    {                      
                         $lastIndex = $nodeIndex;
                     }
                 }
 
-                
+                //validate boundarues
+                $boundaryLast = digi_pdf_to_html::returnBoundary([$lastIndex]); 
+                $boundaryNext = digi_pdf_to_html::returnBoundary([$nextIndex]); 
+                if($boundaryLast['maxLeft'] > $boundaryNext['maxLeft'] )    { continue; } //a previous node cannot exceed the next maxLeft value
+       
                 if(!digi_pdf_to_html::textNodesAreMergable($obj['nodes'][$lastIndex],$obj['nodes'][$nextIndex]) ) { continue ; }
                 digi_pdf_to_html::mergeNodes($lastIndex,$nextIndex); 
                 $this->execute($obj);

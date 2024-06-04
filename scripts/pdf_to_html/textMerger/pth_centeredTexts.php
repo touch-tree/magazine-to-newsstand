@@ -52,6 +52,7 @@ class pth_centeredTexts
 
         $arrayCenterCollection =  digi_pdf_to_html::collectPropertyValues($textNodes,"center",$this->margin);
 
+
         foreach ($arrayCenterCollection as $center => $indexes) 
         {
                 $len = sizeof($indexes);

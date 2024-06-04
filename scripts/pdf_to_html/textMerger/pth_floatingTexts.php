@@ -8,17 +8,20 @@ declare(strict_types=1);
 
 class pth_floatingTexts
 {    
-    private $maxcMarginThreshold =  3;
-    private $maxTextYSeparator =    8;
-    private $maxcMarginXAppender =  25;
-    private $boundaryMargin =       2;
+    private $maxcMarginThreshold =      3;
+    private $maxTextYSeparator =        8;
+    private $maxcMarginXAppender =      25;
+    private $boundaryMargin =           2;
+    private $sourceLineMarginLeft =     8;
     
     public function __construct()
     {
         $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber]; 
         digi_pdf_to_html::sortByTopThenLeftAsc();
         //-------------------------------
-        $this->execute($obj);       
+        $this->execute($obj);   
+        
+       
     }
     
     //#####################################################################
@@ -27,8 +30,9 @@ class pth_floatingTexts
         $arrayLeftCollection = $this->collectAllSimilarLeftOffsets();
         $arrayLeftCollection = $this->groupAllSimilarLeftOffsets($obj,$arrayLeftCollection);
         $textNodes =            digi_pdf_to_html::returnProperties("tag","text",false); 
+        $textNodes =            digi_pdf_to_html::sortNodesByProperty($textNodes,"left");
+    
 
-        $mergers = [];
         foreach( $arrayLeftCollection as $left => $groups) 
         { 
                 foreach( $groups as $n => $indexes) 
@@ -42,27 +46,33 @@ class pth_floatingTexts
                     foreach( $textNodes as $index=> $properties) 
                     { 
 
-                        if(!digi_pdf_to_html::nodeWithinBoundary($properties,$boundaryBlock,$left))       { continue; }   // the floating node must be within the boundary
-                        if($properties['left'] <= ($boundaryBlock['left'] + $this->maxcMarginThreshold))  { continue; }   // the floating node seems too much to the left. It is expected that the text must be appended at the end of the source node.
+                        
+    
+                        if(!digi_pdf_to_html::nodeWithinBoundary($properties,$boundaryBlock))               { continue; }   // the floating node must be within the boundary
+                        if($properties['left'] <= ($boundaryBlock['left'] + $this->maxcMarginThreshold))    { continue; }   // the floating node seems too much to the left. It is expected that the text must be appended at the end of the source node.
+                        
+        
+          
+
                         foreach( $indexes as $i => $subIndex) 
                         {
-                            if($subIndex == $index)                                                       { continue; }
+                            if($subIndex == $index)                                                         { continue; }
                             $boundarynode = digi_pdf_to_html::returnBoundary([$subIndex]);
-                            if(!digi_pdf_to_html::nodeOverlapsBoundary($properties,$boundarynode))        { continue; }    
-                            $mergers[$subIndex] = $index;
-                            break;
+                            $boundarynode['maxLeft'] += $this->sourceLineMarginLeft;
+                            
+                            
+                            if(!digi_pdf_to_html::nodeOverlapsBoundary($properties,$boundarynode))          { continue; }  
+                            digi_pdf_to_html::mergeNodes($subIndex,$index); 
+                            $this->execute($obj);
+                            return;
                         }
                     }
                 }
         }
 
+ 
 
-        foreach( $mergers as $srcIndex => $tgtIndex) 
-        { 
-            digi_pdf_to_html::mergeNodes($srcIndex, $tgtIndex, false);  
-        }
-   
-        digi_pdf_to_html::reIndex();
+
     }
     
     //########################################################################################################
