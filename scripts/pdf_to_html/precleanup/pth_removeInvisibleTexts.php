@@ -9,7 +9,8 @@ class pth_removeInvisibleTexts
 {    
     private $imageWidth =   null;
     private $imageHeight =  null;
-    private $image = null;
+    private $image =        null;
+    private $maxTopMargin = 80;
     
     public function __construct()
     {
@@ -34,8 +35,10 @@ class pth_removeInvisibleTexts
             $fontColor = $properties['fontColor'];
             $block =     digi_pdf_to_html::returnBoundary([$index]);
 
+  
+
             //-------------------------------------
-            //start block location
+            //start block location (topleft)
             $pixelTop =     sys::posInt(round(($block['pagePercentageStartTop']/100) * $this->imageHeight));
             $pixelLeft =    sys::posInt(round(($block['pagePercentageStartLeft']/100) * $this->imageWidth));
             $color =        images::getPixelColour($this->image,$pixelTop,$pixelLeft);
@@ -53,6 +56,13 @@ class pth_removeInvisibleTexts
                 if( isset($color) && colours::colourIsSimilar($fontColor,$color)) {  $delete =  true; } 
             }
 
+            //-----------------------------------
+            //white fonts within page header
+            if( $fontColor === "#ffffff" && $block['maxTop'] < $this->maxTopMargin  )
+            {
+                $delete =  true;
+            }
+           
             //----------------------------------
             //delete node
             if($delete)

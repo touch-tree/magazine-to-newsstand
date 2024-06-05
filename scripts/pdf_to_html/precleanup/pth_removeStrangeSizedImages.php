@@ -10,7 +10,7 @@ declare(strict_types=1);
 
 class pth_removeStrangeSizedImages
 {    
-    private  $maxVerticalRatio =   2;
+    private  $maxVerticalRatio =   2.7;
     private  $maxHorizontalRatio = 3.5;
     private  $maxImageWidth=       800;
     private  $arrayhandledImages=  [];
@@ -42,6 +42,8 @@ class pth_removeStrangeSizedImages
             //----------------------
             //determine ratio
             $isDeletable = false;
+
+        
 
             $w = images::$settings['imageWidth'];
             $h = images::$settings['imageHeight'];

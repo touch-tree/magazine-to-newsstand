@@ -8,147 +8,120 @@ declare(strict_types=1);
 
 class pth_floatingTexts
 {    
-    private $maxcMarginThreshold = 3;
-    private $maxTextYSeparator =   8;
+    private $maxcMarginThreshold =      3;
+    private $maxTextYSeparator =        8;
+    private $maxcMarginXAppender =      25;
+    private $boundaryMargin =           2;
+    private $sourceLineMarginLeft =     8;
     
     public function __construct()
     {
         $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber]; 
         digi_pdf_to_html::sortByTopThenLeftAsc();
         //-------------------------------
+        $this->execute($obj);   
         
-        $this->execute($obj);       
+       
     }
     
     //#####################################################################
     private function execute(&$obj)
     {
-            //----------------------------
-            //collect indexes based on the left-offset
-            $arrayAllSimilarLeftOffsets =   $this->collectAllSimilarLeftOffsets($obj);
-            $objGroupedSimilarLeftOffsets = $this->groupAllSimilarLeftOffsets($obj,$arrayAllSimilarLeftOffsets);
+        $arrayLeftCollection = $this->collectAllSimilarLeftOffsets();
+        $arrayLeftCollection = $this->groupAllSimilarLeftOffsets($obj,$arrayLeftCollection);
+        $textNodes =            digi_pdf_to_html::returnProperties("tag","text",false); 
+        $textNodes =            digi_pdf_to_html::sortNodesByProperty($textNodes,"left");
+    
 
-            //----------------------------
-            //traverse grouped indexes per left position
-            $arrayMergers=[];
-            foreach( $objGroupedSimilarLeftOffsets as $left => $arrayGroups) 
-            {           
-                $loop = sizeof($arrayGroups);
-                for($n=0;$n<$loop;$n++)
-                {
-                        $indexes = $arrayGroups[$n];
-                        if(sizeof($indexes) <= 1) {continue;}
-                        $objBoundary = digi_pdf_to_html::returnBoundary($indexes);
-                        $blocksToMove = [];
+        foreach( $arrayLeftCollection as $left => $groups) 
+        { 
+                foreach( $groups as $n => $indexes) 
+                { 
+                    $boundaryBlock = digi_pdf_to_html::returnBoundary($indexes);
+                    $boundaryBlock['top'] -=        $this-> boundaryMargin;
+                    $boundaryBlock['maxLeft'] +=    $this-> boundaryMargin;
+                    $boundaryBlock['maxTop'] +=     $this-> boundaryMargin;
+                    $boundaryBlock['left'] -=       $this-> boundaryMargin;
+
+                    foreach( $textNodes as $index=> $properties) 
+                    { 
+
                         
-                        //------------------------------
-                        // find elements within the boundary where the following rule applies: left position > $left + margin
-                        foreach ($obj['nodes'] as $index => $properties) 
+    
+                        if(!digi_pdf_to_html::nodeWithinBoundary($properties,$boundaryBlock))               { continue; }   // the floating node must be within the boundary
+                        if($properties['left'] <= ($boundaryBlock['left'] + $this->maxcMarginThreshold))    { continue; }   // the floating node seems too much to the left. It is expected that the text must be appended at the end of the source node.
+                        
+        
+          
+
+                        foreach( $indexes as $i => $subIndex) 
                         {
-                            if(!digi_pdf_to_html::nodeWithinBoundary($properties,$objBoundary,$left))       { continue; }
-                            if($properties['left'] <= ($objBoundary['left'] + $this->maxcMarginThreshold))  { continue; } 
-                            $blocksToMove[$index]=$properties;
+                            if($subIndex == $index)                                                         { continue; }
+                            $boundarynode = digi_pdf_to_html::returnBoundary([$subIndex]);
+                            $boundarynode['maxLeft'] += $this->sourceLineMarginLeft;
+                            
+                            
+                            if(!digi_pdf_to_html::nodeOverlapsBoundary($properties,$boundarynode))          { continue; }  
+                            digi_pdf_to_html::mergeNodes($subIndex,$index); 
+                            $this->execute($obj);
+                            return;
                         }
-
-                        if(sizeof($blocksToMove)==0) { continue;}
-                        //----------------------------------
-                        //get indexes and the topMax values
-                        $arrayMaxTop =      [];
-                        $indexesToMove =    array_keys($blocksToMove);
-                        foreach ($obj['nodes'] as $index => $properties) 
-                        { 
-                            if(in_array($index, $indexesToMove)){ continue; }
-                            if(!digi_pdf_to_html::nodeWithinBoundary($properties,$objBoundary,$left))      { continue; }
-                            $arrayMaxTop[$index]=$properties['top'] + $properties['height'];
-                        }
-
-                        //----------------------------------
-                        //append all blocks from $blocksToMove
-                        $lastIndex=0;
-                        foreach ($blocksToMove as $index => $properties) 
-                        {   
-                                $keys = array_keys($arrayMaxTop);
-                                $loop2 = sizeof($keys);
-                                for($i=0;$i<$loop2;$i++)
-                                {
-                                    $index1 =   $keys[$i];
-                                    $top1    =  $arrayMaxTop[$index1];
-                                    $index2=    null;
-                                    $top2=      null;
-
-                                    if(isset($keys[$i+1]))
-                                    {
-                                        $index2 =   $keys[$i+1];
-                                        $top2    =  $arrayMaxTop[$index2];      
-                                    }
-
-                                    $assign=false;
-                                    if($properties['top'] > $top1 )
-                                    {
-                                        if(!isset($top2))
-                                        {
-                                            $assign=true;
-                                            $index2 = $index1;
-                                        }
-                                        elseif( $properties['top'] < $top2)
-                                        {
-                                            $assign=true;         
-                                        }
-                                        
-                                        if($assign)
-                                        {
-                                        $arrayMergers[$index2]=$index;     
-                                        }
-                                    }
-
-                                }
-                        }
-
+                    }
                 }
-            }
-        //------------------------------------------
-        //merger
-        $arrayHandledIndexes=[];
-        foreach ($arrayMergers as $src => $tgt) 
-        {  
-            if( in_array($src,$arrayHandledIndexes) or in_array($tgt,$arrayHandledIndexes) ) { continue;}
-            digi_pdf_to_html::mergeNodes($src, $tgt, false);  
-            $arrayHandledIndexes[]=$tgt; //target will be removed
         }
 
-        digi_pdf_to_html::reIndex();
-        //----------------------------------------
+ 
+
+
     }
+    
+    //########################################################################################################
+    //########################################################################################################
+    //########################################################################################################
+    //HELPER FUNCTIONS
+    //########################################################################################################
+    //########################################################################################################
+    //########################################################################################################
 
-
-    //###########################################################
-    //Group all identical 'left' property values (for text-nodes)  and gather the index values
-    //!! note: the returned key-values should not be used for any calculation(!) because the key-values are estimats based on $this->findIndex()
-    private function collectAllSimilarLeftOffsets(&$obj):array
+    //Group all identical 'left' property values (for text-nodes)  and gather their index values
+    //!! note: the returned key-values should not be used for any calculation(!) because the key-values are estimates based on $this->findIndex()
+    
+    private function collectAllSimilarLeftOffsets():array
     {
         $arrayLeftCollection = [];
-
-        foreach ($obj['nodes'] as $index => $item) 
+        $textNodes =  digi_pdf_to_html::returnProperties("tag","text",false); 
+        foreach ($textNodes as $index => $item) 
         {
-            if($item['tag'] === "image") { continue; }
             $value = $item["left"];
             $indx =  $this->findIndex($arrayLeftCollection,$value);
-            if(!isset($indx))
-            {
-                $arrayLeftCollection[$value]=[$index];
-            }
-            else 
-            {
-                $arrayLeftCollection[$indx][] = $index;
-            }
+            if(!isset($indx)) { $arrayLeftCollection[$value]=[$index]; } else  { $arrayLeftCollection[$indx][] = $index; }
         }
 
         return  $arrayLeftCollection;
     }
 
-    //###########################################################
-    //group $arrayAllSimilarLeftOffsets into blocks. Section of a ppage may have the same left-value even though it is a different section
-    //!! note: the returned key-values should not be used for any calculation(!) because the key-values are estimats based on $this->findIndex()
+    //---------------
+
+    private function findIndex(array $array, int $val):?int
+    {
+        $min = $val - $this->maxcMarginThreshold;
+        $max = $val + $this->maxcMarginThreshold;
+        for($n = $min; $n<=$max;$n++)
+        {
+            if(isset($array[$n])) { return $n;}
+        }
+
+        return null;
+    }
+
+    //--------------
+    /*
+        group $arrayAllSimilarLeftOffsets into blocks. Section of a ppage may have the same left-value even though it is a different sectiona based on:
+            - vertical spacing, set in $this->maxTextYSeparator 
+            - different fontSize
+
+        note: the returned key-values should not be used for any calculation(!) because the key-values are estimats based on $this->findIndex()
+    */
     private function groupAllSimilarLeftOffsets(&$obj, array $arrayAllSimilarLeftOffsets):array
     {
         $arrayBlocks =  [];
@@ -176,8 +149,12 @@ class pth_floatingTexts
                             $propertiesNext=    $obj['nodes'][$indexNext];    
 
                             //next line spacing must be within range/allowence
-                            $diff = abs(  $propertiesNext['top'] - ($properties['top'] + $properties['height']) );                           
-                            if( $diff > $this->maxTextYSeparator )                      
+                            $diff = abs(  $propertiesNext['top'] - ($properties['top'] + $properties['height']) ); 
+                            $createNewGroup = false;
+                            if( $diff > $this->maxTextYSeparator )                          { $createNewGroup = true;  }                        
+                            if( $properties['fontSize'] <> $propertiesNext['fontSize'] )    { $createNewGroup = true;  }  
+
+                            if( $createNewGroup )                      
                             {
                                 $setIndex += 1;
                                 $arrayBlocks[$left][$setIndex]=[]; 
@@ -192,19 +169,14 @@ class pth_floatingTexts
         return $arrayBlocks;
 
     }
-    //###########################################################
-    private function findIndex(array $array, int $val):?int
-    {
-        $min = $val - $this->maxcMarginThreshold;
-        $max = $val + $this->maxcMarginThreshold;
-        for($n = $min; $n<=$max;$n++)
-        {
-            if(isset($array[$n])) { return $n;}
-        }
 
-        return null;
-    }
-    //####################################################################
+    //########################################################################################################
+    //########################################################################################################
+    //########################################################################################################
+    //END OF THE HELPER FUNCTIONS
+    //########################################################################################################
+    //########################################################################################################
+    //########################################################################################################
 
 
 }

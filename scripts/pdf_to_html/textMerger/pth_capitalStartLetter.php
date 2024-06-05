@@ -6,7 +6,7 @@ declare(strict_types=1);
 class pth_capitalStartLetter
 {    
 
-    private $properties = 50;
+    private $fontSize = 50;
 
     public function __construct()
     {
@@ -31,7 +31,7 @@ class pth_capitalStartLetter
                 $properties =   $obj['nodes'][$index];
 
                 if(!isset($keys[$n+1]))                                                  { continue; }
-                if( $properties['fontSize'] < $this->properties )                        { continue; }
+                if( $properties['fontSize'] < $this->fontSize )                          { continue; }
                 if(sys::length($properties['content']) > 1)                              { continue; }
                 if(sys::strtoupper($properties['content']) !== $properties['content'])   { continue; }
 

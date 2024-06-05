@@ -2,15 +2,15 @@
 declare(strict_types=1);
 
 /*
-    - grouo text-nodes with a group-boundary, when the text is atop of the boundary
+    - group image-nodes with a group-boundary, when the image is below a certain boundary area
 */
 
-class pth_ungroupedTextHeaderAboveGroupedBoundary
+class pth_ungroupedImageBelowGroupedBoundary
 {    
    
-    private $marginY =              25;
-    private $marginX =              10;
-    /* private $maxHeaderCharsLen =    30; */
+    private $marginY =          30;
+    private $marginCenter =     10;
+    private $marginOffsetX =    5;
 
     public function __construct()
     {
@@ -26,20 +26,26 @@ class pth_ungroupedTextHeaderAboveGroupedBoundary
     {
         $assignedGroups =    digi_pdf_to_html::returnAssignedGroups();
         $len =               sizeof($assignedGroups);
-        $textNodes =         digi_pdf_to_html::returnProperties("tag","text",false);
-
-        //sort textNodes from Top DESC (depending how large marginY is, it may else allow anther node in between)
-        $textNodes = digi_pdf_to_html::sortNodesByProperty($textNodes,"top",false);
+        $imageNodes =        digi_pdf_to_html::returnProperties("tag","image",false);
                 
         for($n=0;$n<$len;$n++)
         {
             $boundary = digi_pdf_to_html::returnGroupBoundary($assignedGroups[$n]);
+            $groupCenter = round(($boundary['maxLeft'] + $boundary['left']) / 2);
             
-            foreach ($textNodes as $index => $properties) 
+            foreach ($imageNodes as $index => $properties) 
             {
                 $boundary2 = digi_pdf_to_html::returnBoundary([$index]);
-                if( abs($boundary['top'] - $boundary2['maxTop']) > $this->marginY  )    { continue; }
-                if( abs($boundary['left'] - $boundary2['left']) > $this->marginX  )     { continue; }
+                $imageCenter = round(($boundary2['maxLeft'] + $boundary2['left']) / 2);
+
+                if( abs($boundary['maxTop'] - $boundary2['top']) > $this->marginY  )    { continue; }
+                if( abs($groupCenter - $imageCenter) > $this->marginCenter )            
+                {
+                    if(abs($boundary2['left'] - $boundary['left'] ) > $this->marginOffsetX )
+                    {
+                        continue; 
+                    }
+                }
 
                 //get index from any nodes from this group
                 $groupNodes = digi_pdf_to_html::returnProperties("groupNumber", $assignedGroups[$n],true);

@@ -2,15 +2,14 @@
 declare(strict_types=1);
 
 /*
-    - grouo text-nodes with a group-boundary, when the text is atop of the boundary
+    - group text-nodes with a group-boundary, when the text is below a certain boundary
 */
 
-class pth_ungroupedTextHeaderAboveGroupedBoundary
+class pth_ungroupedTextFooterBelowGroupedBoundary
 {    
    
-    private $marginY =              25;
-    private $marginX =              10;
-    /* private $maxHeaderCharsLen =    30; */
+    private $marginY = 30;
+    private $marginX = 10;
 
     public function __construct()
     {
@@ -26,10 +25,7 @@ class pth_ungroupedTextHeaderAboveGroupedBoundary
     {
         $assignedGroups =    digi_pdf_to_html::returnAssignedGroups();
         $len =               sizeof($assignedGroups);
-        $textNodes =         digi_pdf_to_html::returnProperties("tag","text",false);
-
-        //sort textNodes from Top DESC (depending how large marginY is, it may else allow anther node in between)
-        $textNodes = digi_pdf_to_html::sortNodesByProperty($textNodes,"top",false);
+        $textNodes =        digi_pdf_to_html::returnProperties("tag","text",false);
                 
         for($n=0;$n<$len;$n++)
         {
@@ -38,13 +34,15 @@ class pth_ungroupedTextHeaderAboveGroupedBoundary
             foreach ($textNodes as $index => $properties) 
             {
                 $boundary2 = digi_pdf_to_html::returnBoundary([$index]);
-                if( abs($boundary['top'] - $boundary2['maxTop']) > $this->marginY  )    { continue; }
-                if( abs($boundary['left'] - $boundary2['left']) > $this->marginX  )     { continue; }
+
+                if( abs($boundary['maxTop'] - $boundary2['top']) > $this->marginY  ) { continue; }
+                if( abs($boundary['left'] - $boundary2['left']) > $this->marginX  )  { continue; }
 
                 //get index from any nodes from this group
                 $groupNodes = digi_pdf_to_html::returnProperties("groupNumber", $assignedGroups[$n],true);
                 $index2 = array_keys($groupNodes)[0];
 
+        
                 $grouped = digi_pdf_to_html::groupNodes([$index,$index2]);
                 if($grouped)
                 {

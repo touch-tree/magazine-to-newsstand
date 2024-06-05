@@ -41,60 +41,80 @@ class pth_centeredTexts
 
     private function execute(&$obj)
     {
-        $textNodes =                    digi_pdf_to_html::returnProperties("tag","text",false);  
+        $textNodes =        digi_pdf_to_html::returnProperties("tag","text",false);  
 
-        //get centered position
-        foreach ($textNodes as $index => $properties) 
+        //process large fonts
+        $fontCollection = digi_pdf_to_html::collectPropertyValues($textNodes,"fontSize",0);
+        foreach ($fontCollection as $fontSize => $indexes) 
         {
-                   $boundary = digi_pdf_to_html::returnBoundary([$index]);
-                   $textNodes[$index]['center'] = round( ($boundary['left'] + $boundary['maxLeft']) / 2);
+            if($fontSize <= 50)         { continue; }
+            if(sizeof($indexes) <= 1)   { continue; }
+            $newNodes = digi_pdf_to_html::returnNodesFromIndexes($indexes);
+            
+            $margin = sys::posInt($this->margin + round($fontSize / 20 ));
+
+            if($this->processNodes($obj, $newNodes , $margin ))
+            {
+                $this->execute($obj);
+                return;
+            }
+
+        }
+        
+
+        if($this->processNodes($obj, $textNodes , $this->margin ))
+        {
+            $this->execute($obj);
+            return;
         }
 
-        $arrayCenterCollection =  digi_pdf_to_html::collectPropertyValues($textNodes,"center",$this->margin);
-
-        foreach ($arrayCenterCollection as $center => $indexes) 
-        {
-                $len = sizeof($indexes);
-                if( $len <= 1 ) { continue; }
-
-                for( $n=0; $n < $len; $n++ )
-                {
-
-                    if(isset($indexes[$n+1]))
-                    {
-                        
-                        $index=         $indexes[$n];
-                        $node =         $obj['nodes'][$index];
-                        $boundary=      digi_pdf_to_html::returnBoundary([$index]);
-                        
-                        $index2=        $indexes[$n+1];;
-                        $node2=         $obj['nodes'][$index2];
-                        $boundary2=     digi_pdf_to_html::returnBoundary([$index2]);  
-                        
-                        //make sure font-size is the same
-                        if( $node['fontSize'] <> $node2['fontSize'] ) { continue; }
-
-                         //spacing to the next line must be within range/allowence
-                        if( ($boundary2['top'] - $boundary['maxTop'] ) > $this->maxTextYSeparator) {continue; }
-
-                        digi_pdf_to_html::mergeNodes($index,$index2); 
-                        $this->execute($obj);
-                        return;
-                    }
-                }
-        }
-
-
-        
-  
-        
-        
-       
     }
 
      //#####################################################################
 
+     private function processNodes($obj, $textNodes , $margin )
+     {
+            //get centered position
+            foreach ($textNodes as $index => $properties) 
+            {
+                    $boundary = digi_pdf_to_html::returnBoundary([$index]);
+                    $textNodes[$index]['center'] = round( ($boundary['left'] + $boundary['maxLeft']) / 2);
+            }
+            $arrayCenterCollection =  digi_pdf_to_html::collectPropertyValues($textNodes,"center", $margin );
 
+            foreach ($arrayCenterCollection as $center => $indexes) 
+            {
+                    $len = sizeof($indexes);
+                    if( $len <= 1 ) { continue; }
+
+                    for( $n=0; $n < $len; $n++ )
+                    {
+
+                        if(isset($indexes[$n+1]))
+                        {
+                            
+                            $index=         $indexes[$n];
+                            $node =         $obj['nodes'][$index];
+                            $boundary=      digi_pdf_to_html::returnBoundary([$index]);
+                            
+                            $index2=        $indexes[$n+1];;
+                            $node2=         $obj['nodes'][$index2];
+                            $boundary2=     digi_pdf_to_html::returnBoundary([$index2]);  
+
+                            if($node['fontId'] <> $node2['fontId']) { continue; }
+                            
+                            if(!digi_pdf_to_html::textNodesAreMergable($node,$node2) ) { continue ; }
+
+                            //spacing to the next line must be within range/allowence
+                            if( ($boundary2['top'] - $boundary['maxTop'] ) > $this->maxTextYSeparator) {continue; }
+                            digi_pdf_to_html::mergeNodes($index,$index2); 
+                            return true;
+                        }
+                    }
+            }
+
+            return false;
+     }
      //------------------------------------------------------------------------
 
     
