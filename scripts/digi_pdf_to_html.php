@@ -225,7 +225,7 @@ class digi_pdf_to_html
     {
         $obj = &self::$arrayPages[self::$pageNumber]; 
         self::sortByTopThenLeftAsc();
-    
+     
         //----------------------------------------------------
         //gather groupNumbers together
        
@@ -256,12 +256,15 @@ class digi_pdf_to_html
         $dom->setFullHtml("<html><head></head><body></body></html>");
         $body = $dom->tagName("body")[0];
 
+
         $divMain =     $dom->createElem("div");
         $dom->setAttribute($divMain,"data-pagenumber",self::$pageNumber);
         $dom->setAttribute($divMain,"data-pagewidth",self::$arrayPages[self::$pageNumber]['meta']['pageWidth']);
         $dom->setAttribute($divMain,"data-pageheight",self::$arrayPages[self::$pageNumber]['meta']['pageHeight']);
 
         $dom->appendLast($body,$divMain);
+
+        
         
         //output html
         $arrayHandledGroup=[];
@@ -270,6 +273,8 @@ class digi_pdf_to_html
  
             $divGroup =     $dom->createElem("div");
             $divBlock =     $dom->createElem("div");
+
+    
             
             if($item['groupNumber'] > 0)
             {
@@ -303,6 +308,8 @@ class digi_pdf_to_html
                 $dom->appendLast($divMain,$divBlock);      
             }
 
+
+
         
             $boundary = self::returnBoundary([$index]);
             $dom->setAttribute($divBlock,"data-left",$boundary['left']); 
@@ -323,8 +330,10 @@ class digi_pdf_to_html
                     $dom->setCssProperty($divBlock,"font-size",$arr['size']."px");
                 }
 
+    
                 $dom->setAttribute($divBlock,"class","divText"); 
                 $dom->setInnerHTML($divBlock,$item['content']);	
+
             } 
             else 
             {
@@ -342,6 +351,8 @@ class digi_pdf_to_html
 
             } 
         }
+
+    
 
         if(!self::isUsableHtml($dom)) { return null; }
         return $dom->innerHTML($body);
@@ -375,7 +386,47 @@ class digi_pdf_to_html
         }
         if(!$hasNormalFontSize) { return false; }
  
+        //-----------------------------------------
+        //check for single text-nodes that have a minimal required text-length (minimal $minChars characters)
+        $minChars = 150;
+        $hasNormalContentLength=false;
+        for($n=0;$n<$len;$n++)
+        {
+            if(!$dom->hasClass($nodes[$n],"divText")) { continue; }
+            $content =  $nodes[$n]->textContent;
+            if(sys::length($content) > $minChars) { $hasNormalContentLength=true; break; }
+        }
+        if(!$hasNormalContentLength) { return false; }
 
+        //-----------------------------------------
+        //check for too many short one-liners
+        $maxChars =         40;
+        $maxPerc =          66;
+        $hasManyOnliners =  false;
+        $totalTextNodes=    0;
+        $totalOneLines=     0;
+        $minTextNodes=      30;
+        for($n=0;$n<$len;$n++)
+        {
+            if(!$dom->hasClass($nodes[$n],"divText")) { continue; }
+            $content =  $nodes[$n]->textContent;
+            if(sys::length($content) <= $maxChars) { $totalOneLines += 1; }
+            $totalTextNodes += 1;
+        }
+        if($totalTextNodes >= $minTextNodes )
+        {
+            $perc = round($totalOneLines / $totalTextNodes * 100);
+            if($perc > $maxPerc){$hasManyOnliners = true; }
+        }
+        if($hasManyOnliners) { return false; }
+        //-----------------------------------------
+
+
+
+        
+
+
+        //-----------------------------------------
         return true;
 
 
@@ -453,6 +504,7 @@ class digi_pdf_to_html
     static public function  hasClosingHtmlTag($str)                                                                              {return preg_match('/<\/[^\s>]+>$/', $str) === 1;}
 
 
+
     //#################################################################################
     //#################################################################################
     //#################################################################################
@@ -479,6 +531,7 @@ class digi_pdf_to_html
         new pth_removeFooter();
         new pth_removeOverlappingImages();
         new pth_relocateSingleCharacters();
+        new pth_removeOrphanTextHeaders();
  
 
         //---------------------------------------

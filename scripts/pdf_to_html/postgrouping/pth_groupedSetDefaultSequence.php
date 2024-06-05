@@ -28,7 +28,7 @@ class pth_groupedSetDefaultSequence
         $len =               sizeof($assignedGroups);
 
         //------------------------
-        //default ordering within groups
+        //default ordering WITHIN groups
         for($n=0;$n<$len;$n++)
         {
             $nodes =                digi_pdf_to_html::returnProperties("groupNumber",$assignedGroups[$n]);
