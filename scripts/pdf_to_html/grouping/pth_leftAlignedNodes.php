@@ -71,7 +71,10 @@ class pth_leftAlignedNodes
                         $boundary2=     digi_pdf_to_html::returnBoundary([$index2]);  
                         
                         //spacing to the next line must be within range/allowence
-                        if( ($boundary2['top'] - $boundary['maxTop'] ) > $this->maxTextYSeparator) {continue; }
+                        if( ($boundary2['top'] - $boundary['maxTop'] ) > $this->maxTextYSeparator) { continue; }
+
+                        //if they overlap it must be ignored
+                        if(digi_pdf_to_html::nodeOverlapsBoundary($boundary,$boundary2))           { continue; }
 
                         $grouped = digi_pdf_to_html::groupNodes([$index,$index2]);
                         if($grouped)

@@ -35,16 +35,20 @@ class pth_removeInvisibleTexts
             $fontColor = $properties['fontColor'];
             $block =     digi_pdf_to_html::returnBoundary([$index]);
 
-  
 
             //-------------------------------------
             //start block location (topleft)
             $pixelTop =     sys::posInt(round(($block['pagePercentageStartTop']/100) * $this->imageHeight));
             $pixelLeft =    sys::posInt(round(($block['pagePercentageStartLeft']/100) * $this->imageWidth));
             $color =        images::getPixelColour($this->image,$pixelTop,$pixelLeft);
+
+
             
             $delete =       false;
             if( isset($color) && colours::colourIsSimilar($fontColor,$color)) { $delete =  true; }
+
+
+
 
             //------------------------------------
             //end block location
@@ -56,13 +60,15 @@ class pth_removeInvisibleTexts
                 if( isset($color) && colours::colourIsSimilar($fontColor,$color)) {  $delete =  true; } 
             }
 
+
+
             //-----------------------------------
             //white fonts within page header
             if( $fontColor === "#ffffff" && $block['maxTop'] < $this->maxTopMargin  )
             {
                 $delete =  true;
             }
-           
+
             //----------------------------------
             //delete node
             if($delete)

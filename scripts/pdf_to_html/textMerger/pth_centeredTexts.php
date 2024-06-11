@@ -45,6 +45,7 @@ class pth_centeredTexts
 
         //process large fonts
         $fontCollection = digi_pdf_to_html::collectPropertyValues($textNodes,"fontSize",0);
+
         foreach ($fontCollection as $fontSize => $indexes) 
         {
             if($fontSize <= 50)         { continue; }

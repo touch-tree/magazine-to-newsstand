@@ -27,7 +27,6 @@ class pth_textColumnsPostBlockWithImage
 {    
     private  $maxTextColumnSeparator =  30; 
     private  $marginRight = 8; 
-    private  $marginTop =   2; //margin for top-value; 
     private  $marginLeft =  3; 
     private  $maxBlockYSeparator =      100; 
     
@@ -92,6 +91,7 @@ class pth_textColumnsPostBlockWithImage
             }
             
         }
+
 
         //traverse the found sections
         foreach ($arrayRightSections as $maxLeft => $sections) 

@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 class pth_floatingTexts
 {    
-    private $maxcMarginThreshold =      3;
+    private $maxMarginThreshold =       3;
     private $maxTextYSeparator =        8;
-    private $maxcMarginXAppender =      25;
+    private $maxMarginXAppender =       25;
     private $boundaryMargin =           2;
     private $sourceLineMarginLeft =     8;
     
@@ -19,9 +19,7 @@ class pth_floatingTexts
         $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber]; 
         digi_pdf_to_html::sortByTopThenLeftAsc();
         //-------------------------------
-        $this->execute($obj);   
-        
-       
+        $this->execute($obj);    
     }
     
     //#####################################################################
@@ -32,36 +30,38 @@ class pth_floatingTexts
         $textNodes =            digi_pdf_to_html::returnProperties("tag","text",false); 
         $textNodes =            digi_pdf_to_html::sortNodesByProperty($textNodes,"left");
     
-
         foreach( $arrayLeftCollection as $left => $groups) 
         { 
                 foreach( $groups as $n => $indexes) 
                 { 
                     $boundaryBlock = digi_pdf_to_html::returnBoundary($indexes);
                     $boundaryBlock['top'] -=        $this-> boundaryMargin;
-                    $boundaryBlock['maxLeft'] +=    $this-> boundaryMargin;
+                    $boundaryBlock['maxLeft'] +=    $this-> sourceLineMarginLeft;
                     $boundaryBlock['maxTop'] +=     $this-> boundaryMargin;
                     $boundaryBlock['left'] -=       $this-> boundaryMargin;
 
                     foreach( $textNodes as $index=> $properties) 
                     { 
 
-                        
-    
-                        if(!digi_pdf_to_html::nodeWithinBoundary($properties,$boundaryBlock))               { continue; }   // the floating node must be within the boundary
-                        if($properties['left'] <= ($boundaryBlock['left'] + $this->maxcMarginThreshold))    { continue; }   // the floating node seems too much to the left. It is expected that the text must be appended at the end of the source node.
-                        
-        
-          
+                        if(!digi_pdf_to_html::nodeWithinBoundary($properties,$boundaryBlock))              { continue; }   // the floating node must be within the boundary    
+                        if($properties['left'] <= ($boundaryBlock['left'] + $this->maxMarginThreshold))    { continue; }   // the floating node seems too much to the left. It is expected that the text must be appended at the end of the source node.
+                        $propertyBoundary = digi_pdf_to_html::returnBoundary([$index]);
 
                         foreach( $indexes as $i => $subIndex) 
                         {
                             if($subIndex == $index)                                                         { continue; }
                             $boundarynode = digi_pdf_to_html::returnBoundary([$subIndex]);
-                            $boundarynode['maxLeft'] += $this->sourceLineMarginLeft;
+                            $boundarynode['maxLeft'] = $boundaryBlock['maxLeft'];
+
+                            //get center x and y of node as a small block to ensure there are no overlaps
+                            $centeredProp = $properties;
+                            $centeredProp['top'] =      sys::posInt(round(($propertyBoundary['top'] + $propertyBoundary['maxTop']) / 2));
+                            $centeredProp['left'] =     sys::posInt(round(($propertyBoundary['left'] + $propertyBoundary['maxLeft']) / 2));
+                            $centeredProp['width'] =    3;
+                            $centeredProp['height'] =   3;
+           
+                            if(!digi_pdf_to_html::nodeOverlapsBoundary($centeredProp,$boundarynode))          { continue; }  
                             
-                            
-                            if(!digi_pdf_to_html::nodeOverlapsBoundary($properties,$boundarynode))          { continue; }  
                             digi_pdf_to_html::mergeNodes($subIndex,$index); 
                             $this->execute($obj);
                             return;
@@ -69,10 +69,6 @@ class pth_floatingTexts
                     }
                 }
         }
-
- 
-
-
     }
     
     //########################################################################################################
@@ -104,8 +100,8 @@ class pth_floatingTexts
 
     private function findIndex(array $array, int $val):?int
     {
-        $min = $val - $this->maxcMarginThreshold;
-        $max = $val + $this->maxcMarginThreshold;
+        $min = $val - $this->maxMarginThreshold;
+        $max = $val + $this->maxMarginThreshold;
         for($n = $min; $n<=$max;$n++)
         {
             if(isset($array[$n])) { return $n;}

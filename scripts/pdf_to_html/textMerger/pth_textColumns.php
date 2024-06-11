@@ -36,7 +36,9 @@ class pth_textColumns
     {
         $obj = &digi_pdf_to_html::$arrayPages[digi_pdf_to_html::$pageNumber]; 
         digi_pdf_to_html::sortByTopThenLeftAsc();
-        $this->execute($obj);       
+        $this->execute($obj);  
+        
+        //print_r($obj);exit;
     }
     
     //#####################################################################
@@ -47,7 +49,7 @@ class pth_textColumns
         $objTree = $this->gatherVerticalTree($textNodes);    
         $objTree = $this->gatherHorizontalTree($objTree);
 
-    
+        
         foreach ($objTree as $groupIndex => $blocks) 
         {
             
@@ -60,8 +62,7 @@ class pth_textColumns
                 $nextIndex =        reset($blocks[$n+1]);
 
 
-                
-             
+            
                 //check if there is another node embedded within a larger one (e.g. due to earlier merger); if so the lowest/rightmost one applies
                 $boundary =  digi_pdf_to_html::returnBoundary([$lastIndex]); 
                 foreach ($textNodes as $nodeIndex => $nodeProperties) 
@@ -77,11 +78,26 @@ class pth_textColumns
                     }
                 }
 
-                //validate boundarues
+                //-------------------------------------
+                //validate boundaries: a previous node cannot exceed the next maxLeft value
                 $boundaryLast = digi_pdf_to_html::returnBoundary([$lastIndex]); 
                 $boundaryNext = digi_pdf_to_html::returnBoundary([$nextIndex]); 
-                if($boundaryLast['maxLeft'] > $boundaryNext['maxLeft'] )    { continue; } //a previous node cannot exceed the next maxLeft value
-       
+                if($boundaryLast['maxLeft'] > $boundaryNext['maxLeft'] )    { continue; } 
+
+                //--------------------------------------
+                //check if there is another text-node between the next column and the current node (same top)
+                $sameTopNodes = digi_pdf_to_html::returnProperties("top",$boundaryLast['top']);
+                if( sizeof($sameTopNodes)> 0 )
+                {
+                    $sameTopNodes = digi_pdf_to_html::sortNodesByProperty($sameTopNodes,"left");
+                    foreach ($sameTopNodes as $topIndex => $topProperties) 
+                    {
+                        if($lastIndex == $topIndex) { continue; }
+                        if( abs($boundaryLast['maxLeft'] - $topProperties['left']) <= $this->marginLeft )  { continue 2;  }
+                    }
+                }
+
+                //-----------------------------------------
                 if(!digi_pdf_to_html::textNodesAreMergable($obj['nodes'][$lastIndex],$obj['nodes'][$nextIndex]) ) { continue ; }
                 digi_pdf_to_html::mergeNodes($lastIndex,$nextIndex); 
                 $this->execute($obj);
